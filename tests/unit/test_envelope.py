@@ -1,4 +1,5 @@
 """Envelope schema tests."""
+
 from datetime import UTC, datetime
 
 import pytest
@@ -13,7 +14,7 @@ from webscraper.envelope import (
 )
 
 
-def test_fetch_result_roundtrips_to_json():
+def test_fetch_result_roundtrips_to_json() -> None:
     result = FetchResult(
         url="https://example.com",
         final_url="https://example.com",
@@ -37,7 +38,7 @@ def test_fetch_result_roundtrips_to_json():
     assert reparsed == result
 
 
-def test_fetch_result_rejects_empty_tier_history():
+def test_fetch_result_rejects_empty_tier_history() -> None:
     with pytest.raises(ValidationError):
         Meta(
             tier_used="fast",
@@ -47,7 +48,7 @@ def test_fetch_result_rejects_empty_tier_history():
         )
 
 
-def test_fetch_result_tier_used_matches_last_history_entry():
+def test_fetch_result_tier_used_matches_last_history_entry() -> None:
     with pytest.raises(ValidationError):
         Meta(
             tier_used="browser",
@@ -57,7 +58,7 @@ def test_fetch_result_tier_used_matches_last_history_entry():
         )
 
 
-def test_fetched_at_serializes_with_z_suffix():
+def test_fetched_at_serializes_with_z_suffix() -> None:
     result = FetchResult(
         url="https://example.com",
         final_url="https://example.com",
@@ -75,17 +76,19 @@ def test_fetched_at_serializes_with_z_suffix():
     assert '"fetched_at":"2026-04-16T12:00:00Z"' in result.model_dump_json()
 
 
-def test_image_role_accepts_enum_values_only():
+def test_image_role_accepts_enum_values_only() -> None:
     with pytest.raises(ValidationError):
-        ImageSpec(url="https://x/y.jpg", alt="", width=0, height=0, role="sidebar")
+        ImageSpec.model_validate(
+            {"url": "https://x/y.jpg", "alt": "", "width": 0, "height": 0, "role": "sidebar"}
+        )
 
 
-def test_link_kind_accepts_enum_values_only():
+def test_link_kind_accepts_enum_values_only() -> None:
     with pytest.raises(ValidationError):
-        LinkSpec(href="/a", text="", rel="", kind="bogus")
+        LinkSpec.model_validate({"href": "/a", "text": "", "rel": "", "kind": "bogus"})
 
 
-def test_defaults_to_empty_collections():
+def test_defaults_to_empty_collections() -> None:
     result = FetchResult(
         url="https://example.com",
         final_url="https://example.com",
@@ -104,3 +107,19 @@ def test_defaults_to_empty_collections():
     assert result.forms == []
     assert result.images == []
     assert result.links == []
+
+
+def test_meta_accepts_multi_entry_escalation_history() -> None:
+    meta = Meta(
+        tier_used="browser",
+        tier_history=[
+            TierAttempt(
+                tier="fast", outcome="escalated", elapsed_ms=50, reason="insufficient_content"
+            ),
+            TierAttempt(tier="browser", outcome="success", elapsed_ms=800),
+        ],
+        http_status=200,
+        content_type="text/html",
+    )
+    assert meta.tier_used == "browser"
+    assert [a.tier for a in meta.tier_history] == ["fast", "browser"]

@@ -1,8 +1,16 @@
 """Canonical envelope schema for webscraper fetch results."""
-from datetime import datetime
+
+from datetime import datetime, timedelta
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 TierName = Literal["fast", "browser", "firecrawl"]
 TierOutcome = Literal["success", "escalated", "failed"]
@@ -82,6 +90,13 @@ class FetchResult(BaseModel):
     forms: list[FormSpec] = []
     images: list[ImageSpec] = []
     links: list[LinkSpec] = []
+
+    @field_validator("fetched_at")
+    @classmethod
+    def _fetched_at_must_be_utc(cls, v: datetime) -> datetime:
+        if v.tzinfo is None or v.utcoffset() != timedelta(0):
+            raise ValueError("fetched_at must be timezone-aware UTC")
+        return v.replace(microsecond=0)
 
     @field_serializer("fetched_at")
     def _serialize_fetched_at(self, dt: datetime) -> str:
