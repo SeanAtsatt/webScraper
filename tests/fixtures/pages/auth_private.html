@@ -2,6 +2,10 @@
 <html><head><title>Private Area</title></head>
 <body>
   <h1>Authenticated Content</h1>
-  <p>You are logged in. Here is the private content only visible with the
-  fixture_auth cookie set.</p>
+  <p>Authenticated: You are logged in and can view the private content on this page.
+  The session cookie grants access to this resource. This page is used to verify
+  that browser-tier fetching with a seeded Chrome profile correctly sends the
+  session cookie and receives authenticated page content in return. The content
+  here is intentionally verbose enough to pass the minimum content length check
+  used by the dispatcher to determine whether a tier succeeded.</p>
 </body></html>

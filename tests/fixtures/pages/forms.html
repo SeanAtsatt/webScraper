@@ -1,6 +1,10 @@
 <!doctype html>
 <html><head><title>Forms</title></head>
 <body>
+  <p>This page contains a form used to test the form parser. The form submits
+  to /submit via POST and includes a text input, a select dropdown, a textarea,
+  and a checkbox. Use this page to verify that all field types are captured
+  correctly by the parser along with their names and form metadata.</p>
   <form action="/submit" method="POST">
     <label for="q">Search</label>
     <input type="text" id="q" name="q" />

@@ -5,8 +5,12 @@
   <script>
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("root").innerHTML =
-        "<h1>SPA Rendered</h1><p>This content was injected by JavaScript after load. " +
-        "Tier 1 should not see this; Tier 2 should.</p>";
+        "<h1>SPA Rendered</h1><p>SPA Rendered: This content was injected by JavaScript after load. " +
+        "Tier 1 should not see this; Tier 2 should. The JavaScript-rendered content " +
+        "is intentionally long enough to pass the dispatcher minimum content length " +
+        "check. Only a browser-tier fetcher that executes JavaScript will see this " +
+        "paragraph in the DOM; the fast HTTP fetcher will only see the empty root div " +
+        "and thus produce insufficient content, triggering escalation to Tier 2.</p>";
     });
   </script>
 </body></html>

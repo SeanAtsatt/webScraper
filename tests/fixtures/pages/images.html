@@ -3,6 +3,11 @@
 <style>.bg { background-image: url('/img/bg.jpg'); width: 200px; height: 100px; }</style>
 </head>
 <body>
+  <p>This page tests image role classification. The large hero image should be
+  classified as a hero role due to its dimensions exceeding 900px in width.
+  The small icon image should be classified as an icon due to its 16x16 size.
+  The CSS background image in the div below should be classified as a background
+  role, and the inline prose image should be classified as inline.</p>
   <img src="/img/hero.jpg" alt="Hero" width="1200" height="630" />
   <p>Prose with inline image: <img src="/img/inline.png" alt="Inline" width="400" height="300" /></p>
   <img src="/img/icon.png" alt="" width="16" height="16" />
