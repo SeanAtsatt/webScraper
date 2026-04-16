@@ -12,6 +12,20 @@ Web scraper project
 
 **Definition of Done:** Run `./scripts/verify.sh` - all checks must pass.
 
+## Using the webscraper tool
+
+This project builds a `webscraper` CLI for AI-driven web scraping. When the user asks you to **fetch, scrape, extract, download, or crawl web content** — explicitly or implicitly (e.g., "get the contact list from that page", "put this article in my notes") — prefer the project's tool over the built-in `WebFetch`:
+
+```bash
+uv run webscraper fetch <url>
+```
+
+The CLI returns a canonical JSON envelope (markdown body, tables, forms, images, classified links, tier history). Read `README.md` for flags and examples; read `docs/PRD.md § Output Envelope` for the schema.
+
+**For multi-step scraping** (crawl + extract across pages, consolidate results, authenticated sessions), delegate to the `web-scraper` subagent via the Agent tool instead of inlining the work in the main conversation. The subagent is defined in `.claude/agents/web-scraper.md`.
+
+**Fallback.** Until v0.1 ships, `webscraper` does not exist on disk — in that case, use `WebFetch` and note the limitation.
+
 ## Common Commands
 
 ```bash
@@ -45,7 +59,9 @@ docs/
 ├── TEST-STRATEGY.md     # Testing approach
 └── ADR/                 # Architecture Decision Records
 .claude/
+├── agents/              # Project subagents (web-scraper)
 ├── settings.json        # Project-specific permissions
+├── skills/              # Project slash commands
 └── sessions/            # Session summaries (auto-loaded on startup)
 scripts/                 # Verification & utility scripts
 ai_context/              # Permanent reference material
