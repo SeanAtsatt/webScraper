@@ -1,0 +1,43 @@
+# Docker MCP Gateway - Static Baseline Configuration
+#
+# Servers listed here are always available in every Claude Code session.
+# This file is version-controlled so all team members get the same MCP capabilities.
+#
+# Additional servers can be discovered and added dynamically during sessions
+# using mcp-find / mcp-add (no file edits needed). Use mcp-remove to unload
+# when done. See mcp/README.md for details.
+#
+# Keep this list minimal to conserve context window space (~200-500 tokens per server).
+# Use dynamic loading (mcp-add) for situational needs.
+
+servers:
+  # --- Always On ---
+  - context7              # Documentation lookup for libraries and frameworks
+
+  # --- Dev Tools (uncomment as needed) ---
+  # - github              # GitHub operations (PRs, issues, repos)
+  # - gitlab              # GitLab operations
+
+  # --- Databases (uncomment as needed) ---
+  # - postgres            # PostgreSQL database access
+  # - mongodb             # MongoDB operations
+  # - redis               # Redis cache operations
+  # - sqlite              # SQLite database access
+
+  # --- Search (uncomment as needed) ---
+  # - brave               # Web search via Brave
+  # - exa                 # Web search via Exa
+  # - tavily              # Web search via Tavily
+
+  # --- Cloud (uncomment as needed) ---
+  # - aws                 # AWS operations
+  # - gcp                 # Google Cloud operations
+
+  # --- Productivity (uncomment as needed) ---
+  # - slack               # Slack messaging
+  # - linear              # Linear issue tracking
+  # - notion              # Notion pages and databases
+
+  # --- Testing (uncomment as needed) ---
+  # - playwright          # Browser automation and testing
+  # - puppeteer           # Headless browser testing

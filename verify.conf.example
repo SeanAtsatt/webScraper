@@ -1,0 +1,86 @@
+# verify.conf - Project-specific configuration for verify.sh and security_gate.sh
+# Place this file at your project root as verify.conf
+# All variables are optional - defaults are shown below (commented out)
+
+# =============================================================================
+# Python Configuration
+# =============================================================================
+
+# Files/directories to detect Python project (OR logic, space-separated)
+# PYTHON_DETECT="pyproject.toml src/__init__.py"
+
+# Python command runner prefix (e.g., "uv run", "poetry run", or "" for bare)
+# PYTHON_RUNNER="uv run"
+
+# Individual tool commands (derived from PYTHON_RUNNER if not set)
+# PYTHON_LINT_CMD="uv run ruff check ."
+# PYTHON_FORMAT_CMD="uv run ruff format --check ."
+# PYTHON_TYPECHECK_CMD="uv run mypy ."
+# PYTHON_TEST_CMD="uv run pytest -v"
+
+# Whether each check is required (true) or warning-only (false)
+# PYTHON_LINT_REQUIRED="true"
+# PYTHON_FORMAT_REQUIRED="false"
+# PYTHON_TYPECHECK_REQUIRED="false"
+# PYTHON_TEST_REQUIRED="true"
+
+# =============================================================================
+# TypeScript / Node.js Configuration
+# =============================================================================
+
+# Subdirectory containing package.json (relative to project root)
+# TYPESCRIPT_DIR="."
+
+# Section header in verify.sh output
+# TYPESCRIPT_SECTION_NAME="TypeScript/Node.js Checks"
+
+# Package manager: "auto" (detect pnpm vs npm), "pnpm", or "npm"
+# TYPESCRIPT_PKG_MGR="auto"
+
+# =============================================================================
+# Infrastructure Tests (BATS)
+# =============================================================================
+
+# "auto" (detect bats + run-tests.sh), "true", or "false"
+# BATS_ENABLED="auto"
+
+# =============================================================================
+# Credential / Environment Checks
+# =============================================================================
+
+# Command to verify required credentials (empty = skip check)
+# If this command fails, verify.sh exits immediately with FAILED status
+# CREDENTIAL_CHECK_CMD=""
+
+# Message shown when credential check fails (e.g., how to fix)
+# CREDENTIAL_REMEDY=""
+
+# Example for AWS projects:
+# CREDENTIAL_CHECK_CMD="aws sts get-caller-identity"
+# CREDENTIAL_REMEDY="AWS credentials not available. Exit and restart with: claude_aws"
+
+# =============================================================================
+# Security Gate Configuration
+# =============================================================================
+
+# Extra directories to exclude from secret scanning (space-separated)
+# SECURITY_EXTRA_EXCLUDE_DIRS=""
+
+# Glob patterns to skip in executable inventory check (space-separated)
+# EXECUTABLE_SKIP_PATTERNS=""
+
+# Subdirectory for npm/pnpm audit (relative to project root)
+# NODE_AUDIT_DIR="."
+
+# Extra executables to allow in inventory (newline-separated)
+# EXTRA_ALLOWED_EXECUTABLES=""
+
+# =============================================================================
+# Functional Coverage Verification
+# =============================================================================
+
+# "auto" (warn if missing, check if present), "true" (fail if missing), "false" (skip)
+# FUNCTIONAL_VERIFY_ENABLED="auto"
+
+# Glob pattern for test files containing [F-REQ-xxx] tags (bash globstar)
+# FUNCTIONAL_TEST_GLOB="tests/**/*test*"

@@ -1,0 +1,139 @@
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+service-account*.json
+
+# =============================================================================
+# AI Working Directory (Temporary Files)
+# =============================================================================
+# Ignore all content but keep directory structure via .gitkeep files
+ai_working/**
+!ai_working/
+!ai_working/*/
+!ai_working/**/.gitkeep
+
+# =============================================================================
+# Claude Code Local Settings
+# =============================================================================
+.claude/settings.local.json
+.claude/audit.log*
+.claude/sessions/*.md
+.claude/worktrees/
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.uv/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.pyright/
+
+# Linting
+.ruff_cache/
+
+# =============================================================================
+# Node.js / TypeScript
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# Testing
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# =============================================================================
+# IDE & Editors
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =============================================================================
+# Docker
+# =============================================================================
+# Don't ignore docker-compose files, but ignore local overrides
+docker-compose.override.yml
+.docker/
+
+# =============================================================================
+# Logs
+# =============================================================================
+logs/
+*.log
+
+# =============================================================================
+# OS Generated
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =============================================================================
+# Worktrees (created outside main repo)
+# =============================================================================
+# Note: Worktrees are created in ../project-worktrees/, not inside the repo
