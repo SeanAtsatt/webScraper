@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
     @app.get("/auth/login")
     def auth_login(response: Response) -> Response:
         resp = HTMLResponse("<p>logged in</p>")
-        resp.set_cookie("fixture_auth", "1", path="/")
+        resp.set_cookie("fixture_auth", "1", path="/", max_age=86400)
         return resp
 
     @app.get("/challenge/cloudflare", response_class=HTMLResponse)
