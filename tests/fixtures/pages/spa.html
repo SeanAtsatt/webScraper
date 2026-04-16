@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><title>SPA Shell</title></head>
+<body>
+  <div id="root"></div>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("root").innerHTML =
+        "<h1>SPA Rendered</h1><p>This content was injected by JavaScript after load. " +
+        "Tier 1 should not see this; Tier 2 should.</p>";
+    });
+  </script>
+</body></html>
