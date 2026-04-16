@@ -9,6 +9,7 @@ dependencies = [
     "readability-lxml>=0.8.1",
     "selectolax>=0.3.21",
     "markdownify>=0.13",
+    "markdown>=3.7",
     "playwright>=1.47",
     "pydantic>=2.7",
     "fastapi>=0.115",
