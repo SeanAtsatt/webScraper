@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 
+# [F-NONE]
 def test_doctor_runs_and_exits_cleanly() -> None:
     result = subprocess.run(
         [sys.executable, "-m", "webscraper", "doctor"],

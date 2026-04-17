@@ -1,4 +1,5 @@
 """BrowserFetcher (Playwright) integration tests."""
+
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,7 @@ def seeded_profile(tmp_path: Path, fixture_server: str) -> Path:
     return profile
 
 
+# [F-NONE]
 def test_browser_renders_spa_content(fixture_server: str, tmp_path: Path) -> None:
     f = BrowserFetcher()
     profile = tmp_path / "empty-profile"
@@ -36,6 +38,7 @@ def test_browser_renders_spa_content(fixture_server: str, tmp_path: Path) -> Non
     assert "SPA Rendered" in result.html
 
 
+# [F-NONE]
 def test_browser_reads_auth_cookie_from_copied_profile(
     fixture_server: str, seeded_profile: Path
 ) -> None:

@@ -66,7 +66,7 @@ GLOB_NAME=$(echo "$FUNCTIONAL_TEST_GLOB" | sed 's|.*/||')
 
 while IFS= read -r -d '' f; do
     TEST_FILES+=("$f")
-done < <(find "$GLOB_DIR" -type f -name "$GLOB_NAME" -print0 2>/dev/null)
+done < <(find "$GLOB_DIR" -type f -name "$GLOB_NAME" -not -path "*/__pycache__/*" -not -name "*.pyc" -print0 2>/dev/null)
 
 if [[ ${#TEST_FILES[@]} -eq 0 ]]; then
     echo -e "${YELLOW}No test files found matching glob: $FUNCTIONAL_TEST_GLOB${NC}"

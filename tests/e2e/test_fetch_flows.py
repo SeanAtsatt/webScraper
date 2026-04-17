@@ -5,6 +5,7 @@ Every test below is tagged with a `[F-REQ-xxx]` comment matching an entry
 in `FUNCTIONAL-REQUIREMENTS.md`; `check-functional-coverage.sh` relies on
 these tags to enforce coverage.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,7 +22,10 @@ def _run(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedP
     full_env = {**os.environ, **(env or {})}
     return subprocess.run(
         [sys.executable, "-m", "webscraper", *args],
-        capture_output=True, text=True, timeout=90, env=full_env,
+        capture_output=True,
+        text=True,
+        timeout=90,
+        env=full_env,
     )
 
 
@@ -64,7 +68,9 @@ def test_auth_gated_page_via_copied_profile(fixture_server: str, tmp_path: Path)
         finally:
             ctx.close()
     result = _run(
-        "fetch", f"{fixture_server}/auth/private", "--tier=browser",
+        "fetch",
+        f"{fixture_server}/auth/private",
+        "--tier=browser",
         env={"WEBSCRAPER_CHROME_PROFILE": str(profile)},
     )
     assert result.returncode == 0, result.stderr
@@ -142,9 +148,7 @@ def test_render_html(fixture_server: str) -> None:
 
 
 # [F-REQ-011]
-def test_no_cookies_or_profile_bytes_in_stdout(
-    fixture_server: str, tmp_path: Path
-) -> None:
+def test_no_cookies_or_profile_bytes_in_stdout(fixture_server: str, tmp_path: Path) -> None:
     profile = tmp_path / "auth-profile"
     profile.mkdir()
     with sync_playwright() as p:
@@ -156,7 +160,9 @@ def test_no_cookies_or_profile_bytes_in_stdout(
         finally:
             ctx.close()
     result = _run(
-        "fetch", f"{fixture_server}/auth/private", "--tier=browser",
+        "fetch",
+        f"{fixture_server}/auth/private",
+        "--tier=browser",
         env={"WEBSCRAPER_CHROME_PROFILE": str(profile)},
     )
     assert result.returncode == 0
@@ -166,15 +172,16 @@ def test_no_cookies_or_profile_bytes_in_stdout(
 
 
 # [F-REQ-012]
-def test_scratch_profile_cleaned_up_after_run(
-    fixture_server: str, tmp_path: Path
-) -> None:
+def test_scratch_profile_cleaned_up_after_run(fixture_server: str, tmp_path: Path) -> None:
     import tempfile
+
     before = set(Path(tempfile.gettempdir()).glob("webscraper-profile-*"))
     profile = tmp_path / "p"
     profile.mkdir()
     result = _run(
-        "fetch", f"{fixture_server}/spa/app", "--tier=browser",
+        "fetch",
+        f"{fixture_server}/spa/app",
+        "--tier=browser",
         env={"WEBSCRAPER_CHROME_PROFILE": str(profile)},
     )
     assert result.returncode == 0

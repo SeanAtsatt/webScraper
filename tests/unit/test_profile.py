@@ -8,6 +8,7 @@ from webscraper.errors import EnvironmentError
 from webscraper.profile import copy_profile, locate_profile
 
 
+# [F-NONE]
 def test_locate_profile_uses_env_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     fake = tmp_path / "CustomProfile"
     fake.mkdir()
@@ -15,6 +16,7 @@ def test_locate_profile_uses_env_override(tmp_path: Path, monkeypatch: pytest.Mo
     assert locate_profile() == fake
 
 
+# [F-NONE]
 def test_locate_profile_raises_when_env_points_nowhere(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -23,6 +25,7 @@ def test_locate_profile_raises_when_env_points_nowhere(
         locate_profile()
 
 
+# [F-NONE]
 def test_copy_profile_copies_files_but_skips_lock_files(tmp_path: Path) -> None:
     src = tmp_path / "src"
     src.mkdir()
@@ -39,6 +42,7 @@ def test_copy_profile_copies_files_but_skips_lock_files(tmp_path: Path) -> None:
     assert not copied.exists()
 
 
+# [F-NONE]
 def test_copy_profile_cleans_up_on_exception(tmp_path: Path) -> None:
     src = tmp_path / "src"
     src.mkdir()

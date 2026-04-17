@@ -4,6 +4,7 @@
 from webscraper.parse.tables import extract_tables
 
 
+# [F-NONE]
 def test_extract_tables_with_thead() -> None:
     html = """
     <table>
@@ -20,6 +21,7 @@ def test_extract_tables_with_thead() -> None:
     assert tables[0].rows == [["Alice", "a@x"], ["Bob", "b@x"]]
 
 
+# [F-NONE]
 def test_extract_tables_without_thead_uses_first_row_of_th() -> None:
     html = """
     <table>
@@ -32,5 +34,6 @@ def test_extract_tables_without_thead_uses_first_row_of_th() -> None:
     assert tables[0].rows == [["1", "2"]]
 
 
+# [F-NONE]
 def test_extract_tables_empty_when_no_tables() -> None:
     assert extract_tables("<p>no tables</p>") == []

@@ -3,6 +3,7 @@
 from webscraper.parse.images import extract_images
 
 
+# [F-NONE]
 def test_classifies_hero_inline_icon_and_background() -> None:
     html = """
     <html><head>
@@ -22,10 +23,12 @@ def test_classifies_hero_inline_icon_and_background() -> None:
     assert roles["https://ex.com/img/bg.jpg"] == "background"
 
 
+# [F-NONE]
 def test_empty_when_no_images() -> None:
     assert extract_images("<p>nothing</p>", base_url="https://x/") == []
 
 
+# [F-NONE]
 def test_resolves_relative_urls_against_base() -> None:
     html = '<img src="foo.png" alt="" />'
     images = extract_images(html, base_url="https://ex.com/a/b/")

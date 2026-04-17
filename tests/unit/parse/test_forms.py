@@ -3,6 +3,7 @@
 from webscraper.parse.forms import extract_forms
 
 
+# [F-NONE]
 def test_extract_forms_captures_fields_with_labels() -> None:
     html = """
     <form action="/submit" method="POST">
@@ -25,10 +26,12 @@ def test_extract_forms_captures_fields_with_labels() -> None:
     assert labels["q"] == "Search"
 
 
+# [F-NONE]
 def test_extract_forms_defaults_method_to_get() -> None:
     html = "<form><input name='x' /></form>"
     assert extract_forms(html)[0].method == "GET"
 
 
+# [F-NONE]
 def test_extract_forms_empty_when_no_forms() -> None:
     assert extract_forms("<p>no forms</p>") == []

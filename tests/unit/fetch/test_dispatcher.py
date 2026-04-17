@@ -38,6 +38,7 @@ def _fr(html: str, status: int = 200) -> FetcherResult:
     )
 
 
+# [F-NONE]
 def test_auto_escalates_when_first_tier_returns_empty() -> None:
     d = Dispatcher(
         [_MockFetcher("fast", result=_fr(_EMPTY)), _MockFetcher("browser", result=_fr(_OK_LONG))]
@@ -49,6 +50,7 @@ def test_auto_escalates_when_first_tier_returns_empty() -> None:
     assert env.meta.tier_history[1].outcome == "success"
 
 
+# [F-NONE]
 def test_auto_escalates_on_fetcher_exception() -> None:
     d = Dispatcher(
         [
@@ -60,6 +62,7 @@ def test_auto_escalates_on_fetcher_exception() -> None:
     assert env.meta.tier_used == "browser"
 
 
+# [F-NONE]
 def test_explicit_tier_disables_escalation() -> None:
     d = Dispatcher(
         [_MockFetcher("fast", result=_fr(_EMPTY)), _MockFetcher("browser", result=_fr(_OK_LONG))]
@@ -68,6 +71,7 @@ def test_explicit_tier_disables_escalation() -> None:
         d.run("https://ex/y", DispatchOptions(auto_escalate=False, forced_tier="fast"))
 
 
+# [F-NONE]
 def test_challenge_page_marks_tier_unacceptable() -> None:
     challenge = (
         '<html><body><div class="cf-browser-verification">'
@@ -84,6 +88,7 @@ def test_challenge_page_marks_tier_unacceptable() -> None:
     assert env.meta.tier_used == "browser"
 
 
+# [F-NONE]
 def test_all_tiers_failing_raises() -> None:
     d = Dispatcher(
         [_MockFetcher("fast", result=_fr(_EMPTY)), _MockFetcher("browser", result=_fr(_EMPTY))]

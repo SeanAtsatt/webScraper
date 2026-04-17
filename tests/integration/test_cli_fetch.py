@@ -3,6 +3,7 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
@@ -14,6 +15,7 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+# [F-NONE]
 def test_fetch_static_emits_valid_envelope(fixture_server: str) -> None:
     result = _run("fetch", f"{fixture_server}/static/article", "--tier=fast")
     assert result.returncode == 0, result.stderr
@@ -23,11 +25,13 @@ def test_fetch_static_emits_valid_envelope(fixture_server: str) -> None:
     assert "lazy brown fox" in envelope["markdown"].lower()
 
 
+# [F-NONE]
 def test_fetch_malformed_url_exits_3() -> None:
     result = _run("fetch", "not-a-url")
     assert result.returncode == 3
 
 
+# [F-NONE]
 def test_fetch_render_markdown_switches_stdout(fixture_server: str) -> None:
     result = _run("fetch", f"{fixture_server}/static/article", "--tier=fast", "--render=markdown")
     assert result.returncode == 0
@@ -35,7 +39,8 @@ def test_fetch_render_markdown_switches_stdout(fixture_server: str) -> None:
     assert "Static Article" in result.stdout
 
 
-def test_fetch_out_writes_file(fixture_server: str, tmp_path) -> None:
+# [F-NONE]
+def test_fetch_out_writes_file(fixture_server: str, tmp_path: Path) -> None:
     out_file = tmp_path / "result.json"
     result = _run(
         "fetch", f"{fixture_server}/static/article", "--tier=fast", "--out", str(out_file)
@@ -45,6 +50,7 @@ def test_fetch_out_writes_file(fixture_server: str, tmp_path) -> None:
     assert data["title"] == "Static Article"
 
 
+# [F-NONE]
 def test_fetch_explicit_tier_failure_exits_2(fixture_server: str) -> None:
     # `/spa/app` returns near-empty content on Tier 1; forcing tier=fast with
     # default threshold should be unacceptable and exit 2.

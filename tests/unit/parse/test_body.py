@@ -8,6 +8,7 @@ from webscraper.parse import parse_to_envelope
 from webscraper.parse.body import parse_body
 
 
+# [F-NONE]
 def test_parse_body_returns_markdown_and_text_from_article() -> None:
     html = """<html><body>
       <h1>My Article</h1>
@@ -23,6 +24,7 @@ def test_parse_body_returns_markdown_and_text_from_article() -> None:
     assert title == "My Article"
 
 
+# [F-NONE]
 def test_parse_body_returns_empty_strings_for_empty_body() -> None:
     md, text, title = parse_body("<html><body></body></html>", requested_url="https://x/y")
     assert md == ""
@@ -30,6 +32,7 @@ def test_parse_body_returns_empty_strings_for_empty_body() -> None:
     assert title == ""
 
 
+# [F-NONE]
 def test_parse_body_falls_back_to_readability_when_trafilatura_returns_empty() -> None:
     # A minimal non-article page that trafilatura tends to strip completely
     html = "<html><body><div><p>Short note.</p></div></body></html>"
@@ -37,6 +40,7 @@ def test_parse_body_falls_back_to_readability_when_trafilatura_returns_empty() -
     assert "Short note" in md or "Short note" in text
 
 
+# [F-NONE]
 def test_parse_to_envelope_produces_valid_fetch_result() -> None:
     html = "<html><head><title>T</title></head><body><p>Body.</p></body></html>"
     fetcher_result = FetcherResult(

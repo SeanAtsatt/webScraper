@@ -7,6 +7,7 @@ from webscraper.fetch.base import FetchOptions
 from webscraper.fetch.fast import FastFetcher
 
 
+# [F-NONE]
 def test_fast_fetcher_retrieves_static_page(fixture_server: str) -> None:
     f = FastFetcher()
     result = f.fetch(f"{fixture_server}/static/article", FetchOptions())
@@ -16,12 +17,14 @@ def test_fast_fetcher_retrieves_static_page(fixture_server: str) -> None:
     assert result.elapsed_ms >= 0
 
 
+# [F-NONE]
 def test_fast_fetcher_raises_on_redirect_loop(fixture_server: str) -> None:
     f = FastFetcher()
     with pytest.raises(RedirectLoopError):
         f.fetch(f"{fixture_server}/redirect-loop", FetchOptions())
 
 
+# [F-NONE]
 def test_fast_fetcher_raises_on_oversize(fixture_server: str) -> None:
     f = FastFetcher()
     with pytest.raises(TooLargeError):

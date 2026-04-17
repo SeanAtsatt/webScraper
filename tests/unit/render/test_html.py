@@ -23,6 +23,7 @@ def _envelope() -> FetchResult:
     )
 
 
+# [F-NONE]
 def test_render_html_is_self_contained_document() -> None:
     html = render_html(_envelope())
     assert html.startswith("<!doctype html>")

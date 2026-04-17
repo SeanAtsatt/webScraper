@@ -246,14 +246,14 @@ if find "$PROJECT_ROOT" -name ".env" -not -name ".env.example" -not -path "*/.gi
     fi
 fi
 
-# Check for private keys
-if find "$PROJECT_ROOT" -type f \( -name "*.pem" -o -name "*.key" -o -name "*_rsa" -o -name "*_dsa" -o -name "*_ed25519" \) -not -path "*/.git/*" 2>/dev/null | grep -q .; then
+# Check for private keys (exclude .git and .venv — the latter may contain CA cert bundles from certifi etc.)
+if find "$PROJECT_ROOT" -type f \( -name "*.pem" -o -name "*.key" -o -name "*_rsa" -o -name "*_dsa" -o -name "*_ed25519" \) -not -path "*/.git/*" -not -path "*/.venv/*" 2>/dev/null | grep -q .; then
     echo -e "${RED}  ✗ Private key files found in repository!${NC}"
     DANGEROUS_FOUND=1
 fi
 
-# Check for credential files
-if find "$PROJECT_ROOT" -type f \( -name "credentials.json" -o -name "service-account*.json" -o -name "*.credentials" \) -not -path "*/.git/*" 2>/dev/null | grep -q .; then
+# Check for credential files (exclude .git and .venv)
+if find "$PROJECT_ROOT" -type f \( -name "credentials.json" -o -name "service-account*.json" -o -name "*.credentials" \) -not -path "*/.git/*" -not -path "*/.venv/*" 2>/dev/null | grep -q .; then
     echo -e "${RED}  ✗ Credential files found in repository!${NC}"
     DANGEROUS_FOUND=1
 fi

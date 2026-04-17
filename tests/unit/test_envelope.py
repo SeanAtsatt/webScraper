@@ -14,6 +14,7 @@ from webscraper.envelope import (
 )
 
 
+# [F-NONE]
 def test_fetch_result_roundtrips_to_json() -> None:
     result = FetchResult(
         url="https://example.com",
@@ -38,6 +39,7 @@ def test_fetch_result_roundtrips_to_json() -> None:
     assert reparsed == result
 
 
+# [F-NONE]
 def test_fetch_result_rejects_empty_tier_history() -> None:
     with pytest.raises(ValidationError):
         Meta(
@@ -48,6 +50,7 @@ def test_fetch_result_rejects_empty_tier_history() -> None:
         )
 
 
+# [F-NONE]
 def test_fetch_result_tier_used_matches_last_history_entry() -> None:
     with pytest.raises(ValidationError):
         Meta(
@@ -58,6 +61,7 @@ def test_fetch_result_tier_used_matches_last_history_entry() -> None:
         )
 
 
+# [F-NONE]
 def test_fetched_at_serializes_with_z_suffix() -> None:
     result = FetchResult(
         url="https://example.com",
@@ -76,6 +80,7 @@ def test_fetched_at_serializes_with_z_suffix() -> None:
     assert '"fetched_at":"2026-04-16T12:00:00Z"' in result.model_dump_json()
 
 
+# [F-NONE]
 def test_image_role_accepts_enum_values_only() -> None:
     with pytest.raises(ValidationError):
         ImageSpec.model_validate(
@@ -83,11 +88,13 @@ def test_image_role_accepts_enum_values_only() -> None:
         )
 
 
+# [F-NONE]
 def test_link_kind_accepts_enum_values_only() -> None:
     with pytest.raises(ValidationError):
         LinkSpec.model_validate({"href": "/a", "text": "", "rel": "", "kind": "bogus"})
 
 
+# [F-NONE]
 def test_defaults_to_empty_collections() -> None:
     result = FetchResult(
         url="https://example.com",
@@ -109,6 +116,7 @@ def test_defaults_to_empty_collections() -> None:
     assert result.links == []
 
 
+# [F-NONE]
 def test_meta_accepts_multi_entry_escalation_history() -> None:
     meta = Meta(
         tier_used="browser",

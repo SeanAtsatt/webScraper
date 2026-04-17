@@ -3,6 +3,7 @@
 from webscraper.parse.links import extract_links
 
 
+# [F-NONE]
 def test_classifies_nav_content_external_anchor() -> None:
     html = """
     <html><body>
@@ -21,5 +22,6 @@ def test_classifies_nav_content_external_anchor() -> None:
     assert kinds["https://ex.com/current#s2"] == "anchor"
 
 
+# [F-NONE]
 def test_empty_when_no_links() -> None:
     assert extract_links("<p>none</p>", base_url="https://ex.com/") == []
