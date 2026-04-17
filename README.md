@@ -1,6 +1,6 @@
 # webScraper
 
-> **Status:** pre-implementation. `docs/PRD.md` and `docs/ARCH.md` describe the v0.1 MVP; no code has been written yet. This README describes the tool as it will ship.
+> **Status:** v0.1 shipped. `fetch`, `doctor`, Tiers 1–2, envelope, markdown + HTML renderers, and Chrome-profile auth are implemented and verified.
 
 A Python CLI that turns any URL into AI-ready structured content. Built to be invoked by Claude Code on the user's behalf to solve higher-level goals (populate a notes database, extract a contact list, pull images from a page, crawl a site for relevant material).
 
@@ -145,7 +145,7 @@ Every successful fetch returns this shape. Fields are always present; empty arra
   "meta": {
     "tier_used": "fast",
     "tier_history": [
-      { "tier": "fast", "outcome": "success", "elapsed_ms": 820 }
+      { "tier": "fast", "outcome": "success", "elapsed_ms": 820, "reason": "" }
     ],
     "http_status": 200,
     "content_type": "text/html; charset=utf-8"
@@ -253,7 +253,7 @@ All tests run offline against a local fixture server — no live network.
 
 | Version | Scope | Status |
 |---------|-------|--------|
-| v0.1 | `fetch`, `doctor`, Tiers 1–2, envelope, markdown + HTML renderers, Chrome-profile auth, E2E suite | Not started |
+| v0.1 | `fetch`, `doctor`, Tiers 1–2, envelope, markdown + HTML renderers, Chrome-profile auth, E2E suite | Shipped |
 | v0.2 | `crawl`, `--download-images` | Not started |
 | v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Not started |
 | v0.4 (optional) | MCP server wrapper | Deferred |

@@ -16,6 +16,10 @@ dependencies = [
     "uvicorn>=0.30",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project.scripts]
 webscraper = "webscraper.cli:main"
 
