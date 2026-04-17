@@ -322,7 +322,7 @@ Each tier produces an unacceptable result (or raises). Dispatcher exhausts the c
 - [x] Failure modes + mitigations (§7)
 - [x] Test plan (§8) and observability plan (§9) included
 - [x] Incremental delivery + rollback (§10)
-- [ ] ADR summary written — follow-up: `docs/ADR/ADR-001-tiered-fetcher.md` capturing the Option A choice
+- [x] ADR summary written — `docs/ADR/ADR-001-tiered-fetcher.md`
 
 ---
 
