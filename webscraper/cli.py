@@ -56,6 +56,13 @@ def _parser() -> argparse.ArgumentParser:
 
     sub.add_parser("doctor", help="environment health check")
 
+    auth_p = sub.add_parser("auth", help="manage saved authentication sessions")
+    auth_sub = auth_p.add_subparsers(dest="auth_command", required=True)
+    auth_sub.add_parser("list", help="list saved sessions")
+    forget_p = auth_sub.add_parser("forget", help="delete a saved session")
+    forget_p.add_argument("domain")
+    auth_sub.add_parser("prune", help="remove sessions whose cookies have all expired")
+
     return p
 
 
@@ -127,6 +134,50 @@ def _run_login(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _run_auth(args: argparse.Namespace) -> int:
+    from datetime import UTC, datetime
+
+    from webscraper.auth import forget, list_sessions, prune
+
+    if args.auth_command == "list":
+        summaries = list_sessions()
+        if not summaries:
+            sys.stderr.write("no saved sessions\n")
+            return EXIT_OK
+        now = datetime.now(tz=UTC)
+        for s in summaries:
+            if s.cookie_count == -1:
+                expires_note = "  malformed"
+            elif s.earliest_session_expiry is None:
+                expires_note = "  session-only"
+            else:
+                days = (s.earliest_session_expiry - now).days
+                expires_note = f"  expires in {days}d"
+            chmod_warn = "" if s.file_mode == 0o600 else f"  [chmod {oct(s.file_mode)}]"
+            sys.stdout.write(
+                f"{s.domain:30s}  {s.cookie_count} cookies{expires_note}{chmod_warn}\n"
+            )
+        return EXIT_OK
+
+    if args.auth_command == "forget":
+        removed = forget(args.domain)
+        if removed:
+            sys.stderr.write(f"forgot {args.domain}\n")
+        else:
+            sys.stderr.write(f"no session found for {args.domain}\n")
+        return EXIT_OK
+
+    if args.auth_command == "prune":
+        removed_list = prune()
+        if removed_list:
+            sys.stderr.write(f"pruned: {', '.join(removed_list)}\n")
+        else:
+            sys.stderr.write("nothing to prune\n")
+        return EXIT_OK
+
+    raise UsageError(f"unknown auth subcommand: {args.auth_command}")
+
+
 def _emit(envelope: FetchResult, args: argparse.Namespace) -> None:
     if args.render == "json":
         payload = envelope.model_dump_json(indent=2)
@@ -162,6 +213,8 @@ def main(argv: list[str] | None = None) -> int:
             from webscraper.doctor import run_doctor  # noqa: PLC0415
 
             return run_doctor()
+        if args.command == "auth":
+            return _run_auth(args)
         parser.print_help()
         return EXIT_USAGE
     except UsageError as exc:
