@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import os as _os
 import sys
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 from webscraper import __version__
+from webscraper.auth import registrable_domain, save_state
 from webscraper.envelope import FetchResult
 from webscraper.errors import AllTiersFailedError, UsageError
 from webscraper.errors import EnvironmentError as WSEnvironmentError
@@ -45,6 +48,12 @@ def _parser() -> argparse.ArgumentParser:
     fetch.add_argument("--timeout", type=float, default=30.0)
     fetch.add_argument("--quiet", action="store_true")
 
+    login = sub.add_parser("login", help="interactively log in and save storage state for a domain")
+    login.add_argument("url")
+    login.add_argument(
+        "--timeout", type=float, default=300.0, help="max seconds to wait for login (default 300)"
+    )
+
     sub.add_parser("doctor", help="environment health check")
 
     return p
@@ -78,6 +87,46 @@ def _run_fetch(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _run_login(args: argparse.Namespace) -> int:
+    from playwright.sync_api import sync_playwright  # noqa: PLC0415
+
+    try:
+        domain = registrable_domain(args.url)
+    except UsageError:
+        domain = urlparse(args.url).hostname or ""
+    if not domain:
+        raise UsageError(f"cannot determine domain for URL: {args.url}")
+
+    headless = _os.environ.get("WEBSCRAPER_LOGIN_HEADLESS") == "1"
+    sys.stderr.write(f"Opening browser for {domain} (visible; close manually if needed).\n")
+    sys.stderr.write("Log in, handle MFA, then press Enter here to save.\n")
+    sys.stderr.flush()
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=headless)
+        try:
+            ctx = browser.new_context()
+            try:
+                page = ctx.new_page()
+                page.goto(args.url, timeout=int(args.timeout * 1000))
+                # Block on stdin to let the user complete login:
+                with contextlib.suppress(EOFError):
+                    input()
+                state: dict[str, Any] = dict(ctx.storage_state())
+            finally:
+                ctx.close()
+        finally:
+            browser.close()
+
+    if not state.get("cookies"):
+        sys.stderr.write("warning: no cookies captured; saving state anyway\n")
+
+    path = save_state(domain, state)
+    count = len(state.get("cookies", []))
+    sys.stderr.write(f"Saved {domain} ({count} cookies) → {path}\n")
+    return EXIT_OK
+
+
 def _emit(envelope: FetchResult, args: argparse.Namespace) -> None:
     if args.render == "json":
         payload = envelope.model_dump_json(indent=2)
@@ -107,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "fetch":
             return _run_fetch(args)
+        if args.command == "login":
+            return _run_login(args)
         if args.command == "doctor":
             from webscraper.doctor import run_doctor  # noqa: PLC0415
 
