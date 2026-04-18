@@ -160,3 +160,73 @@ def test_list_sessions_skips_malformed_files(
     summaries = list_sessions()
     # broken entry surfaces with cookie_count=-1 to signal "malformed"
     assert any(s.domain == "broken" and s.cookie_count == -1 for s in summaries)
+
+
+def test_forget_removes_existing_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
+    from webscraper.auth import forget, save_state
+
+    save_state("a.com", {"cookies": [], "origins": []})
+    assert forget("a.com") is True
+    assert not (tmp_path / "auth" / "a.com.json").exists()
+
+
+def test_forget_returns_false_when_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
+    from webscraper.auth import forget
+
+    assert forget("nonexistent.com") is False
+
+
+def test_prune_removes_only_domains_with_no_future_expiry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
+    from webscraper.auth import prune, save_state
+
+    # Keep: has a future persistent cookie
+    save_state(
+        "keep.com",
+        {
+            "cookies": [
+                {
+                    "name": "p",
+                    "value": "x",
+                    "domain": ".keep.com",
+                    "path": "/",
+                    "expires": 9999999999.0,
+                }
+            ],
+            "origins": [],
+        },
+    )
+    # Prune: only session cookies
+    save_state(
+        "session.com",
+        {
+            "cookies": [{"name": "s", "value": "x", "domain": ".session.com", "path": "/"}],
+            "origins": [],
+        },
+    )
+    # Prune: only expired cookies
+    save_state(
+        "expired.com",
+        {
+            "cookies": [
+                {
+                    "name": "e",
+                    "value": "x",
+                    "domain": ".expired.com",
+                    "path": "/",
+                    "expires": 100000.0,
+                }
+            ],
+            "origins": [],
+        },
+    )
+
+    removed = prune()
+    assert set(removed) == {"session.com", "expired.com"}
+    assert (tmp_path / "auth" / "keep.com.json").exists()
+    assert not (tmp_path / "auth" / "session.com.json").exists()
+    assert not (tmp_path / "auth" / "expired.com.json").exists()

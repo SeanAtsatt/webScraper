@@ -85,6 +85,27 @@ def _earliest_future_expiry(cookies: list[dict[str, Any]]) -> datetime | None:
     return datetime.fromtimestamp(min(futures), tz=UTC)
 
 
+def forget(domain: str) -> bool:
+    """Delete the auth file for a domain. Returns True if deleted, False if absent."""
+    path = auth_dir() / f"{domain}.json"
+    if not path.exists():
+        return False
+    path.unlink()
+    return True
+
+
+def prune() -> list[str]:
+    """Remove sessions with no future persistent-cookie expiry. Returns the deleted domains."""
+    removed: list[str] = []
+    for summary in list_sessions():
+        if summary.earliest_session_expiry is None:
+            # Treat "no future persistent expiry" as prunable.
+            # Malformed files (cookie_count == -1) also fall in this bucket.
+            summary.path.unlink()
+            removed.append(summary.domain)
+    return removed
+
+
 def list_sessions() -> list[SessionSummary]:
     d = auth_dir()
     if not d.exists():
