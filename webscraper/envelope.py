@@ -32,6 +32,7 @@ class Meta(BaseModel):
     tier_history: list[TierAttempt] = Field(min_length=1)
     http_status: int
     content_type: str
+    auth_used: str = ""
 
     @model_validator(mode="after")
     def _tier_used_matches_last_history(self) -> "Meta":

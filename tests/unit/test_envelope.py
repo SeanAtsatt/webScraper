@@ -131,3 +131,26 @@ def test_meta_accepts_multi_entry_escalation_history() -> None:
     )
     assert meta.tier_used == "browser"
     assert [a.tier for a in meta.tier_history] == ["fast", "browser"]
+
+
+# [F-NONE]
+def test_meta_auth_used_defaults_to_empty_string() -> None:
+    meta = Meta(
+        tier_used="fast",
+        tier_history=[TierAttempt(tier="fast", outcome="success", elapsed_ms=1)],
+        http_status=200,
+        content_type="text/html",
+    )
+    assert meta.auth_used == ""
+
+
+# [F-NONE]
+def test_meta_auth_used_accepts_domain_string() -> None:
+    meta = Meta(
+        tier_used="browser",
+        tier_history=[TierAttempt(tier="browser", outcome="success", elapsed_ms=1)],
+        http_status=200,
+        content_type="text/html",
+        auth_used="connectance.org",
+    )
+    assert meta.auth_used == "connectance.org"
