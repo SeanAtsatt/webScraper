@@ -30,6 +30,7 @@ def parse_to_envelope(
         tier_history=tier_history,
         http_status=fr.http_status,
         content_type=fr.content_type,
+        auth_used=fr.extra.get("auth_domain", ""),
     )
     return FetchResult(
         url=requested_url,

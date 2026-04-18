@@ -22,6 +22,7 @@ from webscraper.fetch.dispatcher import Dispatcher, DispatchOptions
 from webscraper.fetch.fast import FastFetcher
 from webscraper.log import configure as configure_logging
 from webscraper.log import get_logger
+from webscraper.out import resolve_auto_out
 from webscraper.render.html import render_html
 from webscraper.render.markdown import render_markdown
 
@@ -47,6 +48,11 @@ def _parser() -> argparse.ArgumentParser:
     fetch.add_argument("--min-content-chars", type=int, default=200)
     fetch.add_argument("--timeout", type=float, default=30.0)
     fetch.add_argument("--quiet", action="store_true")
+    fetch.add_argument(
+        "--auto-out",
+        action="store_true",
+        help="resolve output path from CWD (ai_working/ or ~/.webscraper/out/)",
+    )
 
     login = sub.add_parser("login", help="interactively log in and save storage state for a domain")
     login.add_argument("url")
@@ -81,6 +87,20 @@ def _configure_logs(args: argparse.Namespace) -> None:
 
 def _run_fetch(args: argparse.Namespace) -> int:
     _validate_url(args.url)
+
+    # Resolve --auto-out (lowest precedence; --out wins if both are set)
+    out_path: Path | None = args.out
+    if out_path is None and args.auto_out:
+        out_path = resolve_auto_out(
+            url=args.url,
+            render_format=args.render,
+            cwd=Path.cwd(),
+        )
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        sys.stderr.write(f"writing to {out_path}\n")
+    if args.out is not None and args.auto_out:
+        sys.stderr.write("warning: --out overrides --auto-out\n")
+
     fetchers: list[Fetcher] = [FastFetcher(), BrowserFetcher()]  # type: ignore[list-item]
     dispatcher = Dispatcher(fetchers)
     opts = DispatchOptions(
@@ -90,7 +110,7 @@ def _run_fetch(args: argparse.Namespace) -> int:
         fetch_opts=FetchOptions(timeout_s=args.timeout),
     )
     envelope = dispatcher.run(args.url, opts)
-    _emit(envelope, args)
+    _emit(envelope, args, out_path)
     return EXIT_OK
 
 
@@ -178,15 +198,15 @@ def _run_auth(args: argparse.Namespace) -> int:
     raise UsageError(f"unknown auth subcommand: {args.auth_command}")
 
 
-def _emit(envelope: FetchResult, args: argparse.Namespace) -> None:
+def _emit(envelope: FetchResult, args: argparse.Namespace, out_path: Path | None) -> None:
     if args.render == "json":
         payload = envelope.model_dump_json(indent=2)
     elif args.render == "markdown":
         payload = render_markdown(envelope)
     else:  # html
         payload = render_html(envelope)
-    if args.out:
-        args.out.write_text(payload, encoding="utf-8")
+    if out_path is not None:
+        out_path.write_text(payload, encoding="utf-8")
     else:
         sys.stdout.write(payload)
         if not payload.endswith("\n"):

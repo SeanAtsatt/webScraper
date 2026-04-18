@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from webscraper.auth import _home as webscraper_home
 from webscraper.auth import registrable_domain
+from webscraper.errors import UsageError
 
 _NON_SLUG = re.compile(r"[^a-z0-9-]")
 _MAX_SLUG = 64
@@ -39,7 +40,10 @@ def resolve_auto_out(
 ) -> Path:
     """Resolve the path where a scraped artifact should land when --auto-out is set."""
     when = now or datetime.now(tz=UTC)
-    domain = registrable_domain(url)
+    try:
+        domain = registrable_domain(url)
+    except UsageError:
+        domain = urlparse(url).hostname or "unknown"
     project = _find_ai_working_ancestor(cwd)
     base = project / "ai_working" / "scraped" if project is not None else webscraper_home() / "out"
     ts = when.strftime("%Y-%m-%dT%H-%M-%SZ")
