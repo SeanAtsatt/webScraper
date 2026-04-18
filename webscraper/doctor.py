@@ -6,11 +6,11 @@ import importlib
 import platform
 import sys
 
-from webscraper.errors import EnvironmentError
-from webscraper.profile import locate_profile
+from webscraper.auth import auth_dir, list_sessions
 
 _OK = "  OK"
 _FAIL = "FAIL"
+_WARN = "WARN"
 
 
 def _check_python() -> tuple[str, bool]:
@@ -32,16 +32,24 @@ def _check_playwright() -> tuple[str, bool]:
         return f"Playwright: {exc}", False
 
 
-def _check_profile() -> tuple[str, bool]:
-    try:
-        path = locate_profile()
-    except EnvironmentError as exc:
-        return f"Chrome profile: {exc}", False
-    return f"Chrome profile at {path}", True
+def _check_auth() -> tuple[str, bool]:
+    d = auth_dir()
+    if not d.exists():
+        return f"auth dir: none at {d} (run `webscraper login <url>` to create)", True
+    summaries = list_sessions()
+    if not summaries:
+        return f"auth dir at {d}: empty", True
+    problems: list[str] = []
+    for s in summaries:
+        if s.file_mode != 0o600:
+            problems.append(f"{s.domain} has chmod {oct(s.file_mode)} (expected 0o600)")
+    if problems:
+        return f"auth dir: {len(summaries)} sessions; " + "; ".join(problems), False
+    return f"auth dir: {len(summaries)} saved sessions at {d}", True
 
 
 def run_doctor() -> int:
-    checks = [_check_python(), _check_playwright(), _check_profile()]
+    checks = [_check_python(), _check_playwright(), _check_auth()]
     all_ok = True
     for message, ok in checks:
         mark = _OK if ok else _FAIL
