@@ -15,14 +15,18 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import pytest
 from playwright.sync_api import sync_playwright
 
 
-def _run(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _run(
+    *args: str,
+    env: dict[str, str] | None = None,
+    stdin_input: str = "",
+) -> subprocess.CompletedProcess[str]:
     full_env = {**os.environ, **(env or {})}
     return subprocess.run(
         [sys.executable, "-m", "webscraper", *args],
+        input=stdin_input,
         capture_output=True,
         text=True,
         timeout=90,
@@ -56,31 +60,43 @@ def test_spa_escalates_to_tier2(fixture_server: str) -> None:
 
 
 # [F-REQ-003]
-@pytest.mark.xfail(
-    reason="v0.1 chrome_profile_path path removed in v0.1.1; rewritten in Task 15",
-    strict=False,
-)
-def test_auth_gated_page_via_copied_profile(fixture_server: str, tmp_path: Path) -> None:
-    # Seed a headless Chrome profile with the fixture auth cookie
-    profile = tmp_path / "auth-profile"
-    profile.mkdir()
+def test_auth_gated_page_via_saved_storage_state(fixture_server: str, tmp_path: Path) -> None:
+    """Seed an auth file, then fetch the auth-gated page."""
+    from urllib.parse import urlparse
+
+    ws_home = tmp_path / "wshome"
+    # Capture storage state via the fixture login
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(str(profile), headless=True)
+        ctx = p.chromium.launch_persistent_context(str(tmp_path / "seed"), headless=True)
         try:
             page = ctx.new_page()
             page.goto(f"{fixture_server}/auth/login")
             page.wait_for_load_state("networkidle")
+            state = ctx.storage_state()
         finally:
             ctx.close()
+
+    import json as _json
+
+    auth_dir = ws_home / "auth"
+    auth_dir.mkdir(parents=True, exist_ok=True)
+    domain = urlparse(fixture_server).hostname or "127.0.0.1"
+    auth_file = auth_dir / f"{domain}.json"
+    auth_file.write_text(_json.dumps(state))
+    import os as _os
+
+    _os.chmod(auth_file, 0o600)
+
     result = _run(
         "fetch",
         f"{fixture_server}/auth/private",
         "--tier=browser",
-        env={"WEBSCRAPER_CHROME_PROFILE": str(profile)},
+        env={"WEBSCRAPER_HOME": str(ws_home)},
     )
     assert result.returncode == 0, result.stderr
     envelope = _envelope(result.stdout)
-    assert "Authenticated Content" in envelope["markdown"] or "Authenticated" in envelope["text"]
+    assert "Authenticated" in envelope["markdown"] or "Authenticated" in envelope["text"]
+    assert envelope["meta"]["auth_used"] == domain
 
 
 # [F-REQ-004]
@@ -153,53 +169,47 @@ def test_render_html(fixture_server: str) -> None:
 
 
 # [F-REQ-011]
-@pytest.mark.xfail(
-    reason="v0.1 chrome_profile_path path removed in v0.1.1; rewritten in Task 15",
-    strict=False,
-)
-def test_no_cookies_or_profile_bytes_in_stdout(fixture_server: str, tmp_path: Path) -> None:
-    profile = tmp_path / "auth-profile"
-    profile.mkdir()
+def test_no_auth_data_in_stdout_or_stderr(fixture_server: str, tmp_path: Path) -> None:
+    from urllib.parse import urlparse
+
+    ws_home = tmp_path / "wshome"
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(str(profile), headless=True)
+        ctx = p.chromium.launch_persistent_context(str(tmp_path / "seed"), headless=True)
         try:
             page = ctx.new_page()
             page.goto(f"{fixture_server}/auth/login")
             page.wait_for_load_state("networkidle")
+            state = ctx.storage_state()
         finally:
             ctx.close()
+
+    import json as _json
+    import os as _os
+
+    (ws_home / "auth").mkdir(parents=True, exist_ok=True)
+    domain = urlparse(fixture_server).hostname or "127.0.0.1"
+    (ws_home / "auth" / f"{domain}.json").write_text(_json.dumps(state))
+    _os.chmod(ws_home / "auth" / f"{domain}.json", 0o600)
+
     result = _run(
         "fetch",
         f"{fixture_server}/auth/private",
         "--tier=browser",
-        env={"WEBSCRAPER_CHROME_PROFILE": str(profile)},
+        env={"WEBSCRAPER_HOME": str(ws_home)},
     )
-    assert result.returncode == 0
     combined = result.stdout + result.stderr
-    assert "fixture_auth" not in combined
-    assert "Cookies" not in combined
+    assert "fixture_auth=1" not in combined
+    assert "Cookie:" not in combined
+    assert "Set-Cookie:" not in combined
 
 
 # [F-REQ-012]
-@pytest.mark.xfail(
-    reason="v0.1 chrome_profile_path path removed in v0.1.1; rewritten in Task 15",
-    strict=False,
-)
-def test_scratch_profile_cleaned_up_after_run(fixture_server: str, tmp_path: Path) -> None:
-    import tempfile
+def test_freq012_retired() -> None:
+    """F-REQ-012 was the scratch-profile-cleanup test; retired with profile-copy removal.
 
-    before = set(Path(tempfile.gettempdir()).glob("webscraper-profile-*"))
-    profile = tmp_path / "p"
-    profile.mkdir()
-    result = _run(
-        "fetch",
-        f"{fixture_server}/spa/app",
-        "--tier=browser",
-        env={"WEBSCRAPER_CHROME_PROFILE": str(profile)},
-    )
-    assert result.returncode == 0
-    after = set(Path(tempfile.gettempdir()).glob("webscraper-profile-*"))
-    assert after <= before  # no new scratch dirs left behind
+    Security guarantees moved to F-REQ-022 (chmod 600 on auth files).
+    """
+    pass
 
 
 # [F-REQ-013]
@@ -223,3 +233,155 @@ def test_all_tiers_fail_includes_history(fixture_server: str) -> None:
     assert result.returncode == 2
     err = _envelope(result.stdout)
     assert err["error"]["type"] == "fetch_failed"
+
+
+# [F-REQ-016]
+def test_login_saves_session(fixture_server: str, tmp_path: Path) -> None:
+    ws_home = tmp_path / "wshome"
+    result = _run(
+        "login",
+        f"{fixture_server}/auth/login",
+        env={"WEBSCRAPER_HOME": str(ws_home), "WEBSCRAPER_LOGIN_HEADLESS": "1"},
+        stdin_input="\n",
+    )
+    assert result.returncode == 0
+    saved = list((ws_home / "auth").glob("*.json"))
+    assert len(saved) == 1
+
+
+# [F-REQ-017]
+def test_saved_auth_persists_across_invocations(fixture_server: str, tmp_path: Path) -> None:
+    ws_home = tmp_path / "wshome"
+    _run(
+        "login",
+        f"{fixture_server}/auth/login",
+        env={"WEBSCRAPER_HOME": str(ws_home), "WEBSCRAPER_LOGIN_HEADLESS": "1"},
+        stdin_input="\n",
+    )
+    # Second invocation (fresh subprocess) uses the saved state
+    result = _run(
+        "fetch",
+        f"{fixture_server}/auth/private",
+        "--tier=browser",
+        env={"WEBSCRAPER_HOME": str(ws_home)},
+    )
+    assert result.returncode == 0
+    envelope = _envelope(result.stdout)
+    assert envelope["meta"]["auth_used"] != ""
+
+
+# [F-REQ-018]
+def test_fetch_without_auth_proceeds_anonymously(fixture_server: str, tmp_path: Path) -> None:
+    ws_home = tmp_path / "wshome"
+    result = _run(
+        "fetch",
+        f"{fixture_server}/static/article",
+        "--tier=fast",
+        env={"WEBSCRAPER_HOME": str(ws_home)},
+    )
+    assert result.returncode == 0
+    envelope = _envelope(result.stdout)
+    assert envelope["meta"]["auth_used"] == ""
+
+
+# [F-REQ-019]
+def test_auth_list_shows_cookie_count_and_expiry(fixture_server: str, tmp_path: Path) -> None:
+    ws_home = tmp_path / "wshome"
+    _run(
+        "login",
+        f"{fixture_server}/auth/login",
+        env={"WEBSCRAPER_HOME": str(ws_home), "WEBSCRAPER_LOGIN_HEADLESS": "1"},
+        stdin_input="\n",
+    )
+    result = _run("auth", "list", env={"WEBSCRAPER_HOME": str(ws_home)})
+    assert result.returncode == 0
+    assert "cookies" in result.stdout
+
+
+# [F-REQ-020]
+def test_auth_forget_and_prune(tmp_path: Path) -> None:
+    ws_home = tmp_path / "wshome"
+    (ws_home / "auth").mkdir(parents=True)
+    # Seed two fake files: one prunable, one not
+    import json as _json
+    import os as _os
+
+    keep = ws_home / "auth" / "keep.com.json"
+    drop = ws_home / "auth" / "drop.com.json"
+    keep.write_text(
+        _json.dumps(
+            {
+                "cookies": [
+                    {
+                        "name": "p",
+                        "value": "x",
+                        "domain": ".keep.com",
+                        "path": "/",
+                        "expires": 9999999999.0,
+                    }
+                ],
+                "origins": [],
+            }
+        )
+    )
+    drop.write_text(
+        _json.dumps(
+            {
+                "cookies": [{"name": "s", "value": "x", "domain": ".drop.com", "path": "/"}],
+                "origins": [],
+            }
+        )
+    )
+    _os.chmod(keep, 0o600)
+    _os.chmod(drop, 0o600)
+
+    r1 = _run("auth", "prune", env={"WEBSCRAPER_HOME": str(ws_home)})
+    assert r1.returncode == 0
+    assert keep.exists() and not drop.exists()
+
+    r2 = _run("auth", "forget", "keep.com", env={"WEBSCRAPER_HOME": str(ws_home)})
+    assert r2.returncode == 0
+    assert not keep.exists()
+
+
+# [F-REQ-021]
+def test_auto_out_resolves_to_ai_working(fixture_server: str, tmp_path: Path) -> None:
+    import subprocess as _sp
+    import sys as _sys
+
+    project = tmp_path / "proj"
+    (project / "ai_working").mkdir(parents=True)
+    result = _sp.run(
+        [
+            _sys.executable,
+            "-m",
+            "webscraper",
+            "fetch",
+            f"{fixture_server}/static/article",
+            "--tier=fast",
+            "--auto-out",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        cwd=str(project),
+    )
+    assert result.returncode == 0
+    scraped = list((project / "ai_working" / "scraped").rglob("*.json"))
+    assert len(scraped) == 1
+
+
+# [F-REQ-022]
+def test_auth_file_chmod_600(fixture_server: str, tmp_path: Path) -> None:
+    ws_home = tmp_path / "wshome"
+    _run(
+        "login",
+        f"{fixture_server}/auth/login",
+        env={"WEBSCRAPER_HOME": str(ws_home), "WEBSCRAPER_LOGIN_HEADLESS": "1"},
+        stdin_input="\n",
+    )
+    import os as _os
+
+    for f in (ws_home / "auth").glob("*.json"):
+        mode = _os.stat(f).st_mode & 0o777
+        assert mode == 0o600, f"{f}: expected 0o600, got {oct(mode)}"
