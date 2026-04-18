@@ -23,7 +23,7 @@
 |----|----------|-------------|--------------|
 | F-REQ-001 | fetch | Static page returns valid envelope via Tier 1 | response |
 | F-REQ-002 | fetch | JS-rendered page escalates Tier 1 → Tier 2 and returns rendered content | response |
-| F-REQ-003 | fetch | Login-gated page is retrievable via copied Chrome profile | response |
+| F-REQ-003 | fetch | Login-gated page is retrievable via saved per-domain storage state | response |
 | F-REQ-004 | fetch | `--tier` override is honored; no silent escalation | response |
 | F-REQ-005 | content | Tables surface as `{headers, rows}` | response |
 | F-REQ-006 | content | Forms surface as `{action, method, fields[]}` | response |
@@ -31,8 +31,15 @@
 | F-REQ-008 | content | Links classified as `nav/content/external/anchor` | response |
 | F-REQ-009 | render | `--render=markdown` emits markdown, not JSON | response |
 | F-REQ-010 | render | `--render=html` emits valid self-contained HTML | response |
-| F-REQ-011 | security | No cookies or profile bytes appear in stdout/stderr/logs | response |
-| F-REQ-012 | security | Scratch profile directory is removed on exit (success and failure) | response |
+| F-REQ-011 | security | No cookies or auth data appear in stdout/stderr/logs | response |
+| F-REQ-012 | retired | Retired in v0.1.1 (profile-copy removed; superseded by F-REQ-022) | response |
 | F-REQ-013 | errors | Malformed URL (parse error) exits non-zero with a diagnostic JSON error | response |
 | F-REQ-014 | errors | Network-unreachable host exits non-zero with a diagnostic JSON error | response |
 | F-REQ-015 | errors | All enabled tiers failing exits non-zero with a diagnostic including full `tier_history` | response |
+| F-REQ-016 | auth | `login <url>` captures a browser session and saves storage state | response |
+| F-REQ-017 | auth | Saved auth file persists across tool invocations; `fetch` auto-loads it | response |
+| F-REQ-018 | auth | `fetch` without a matching auth file proceeds anonymously (no crash) | response |
+| F-REQ-019 | auth | `auth list` reports cookie count and earliest session expiry per domain | response |
+| F-REQ-020 | auth | `auth forget` and `auth prune` remove files correctly | response |
+| F-REQ-021 | output | `--auto-out` writes to `ai_working/scraped/` when a project ancestor is found; else `~/.webscraper/out/` | response |
+| F-REQ-022 | security | Auth files are `chmod 600` on save; cookies/auth headers never appear in stdout/stderr/logs | response |
