@@ -36,3 +36,49 @@ def test_auth_file_for_returns_path_under_auth_dir(
 def test_auth_dir_returns_auth_subdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
     assert auth_dir() == tmp_path / "auth"
+
+
+def test_save_state_writes_chmod_600(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
+    from webscraper.auth import save_state
+
+    path = save_state("example.com", {"cookies": [], "origins": []})
+    assert path == tmp_path / "auth" / "example.com.json"
+    assert path.exists()
+    mode = path.stat().st_mode & 0o777
+    assert mode == 0o600, f"expected 0o600, got {oct(mode)}"
+
+
+def test_save_state_round_trips_with_load_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
+    from webscraper.auth import load_state, save_state
+
+    state = {
+        "cookies": [
+            {
+                "name": "sess",
+                "value": "abc",
+                "domain": ".example.com",
+                "path": "/",
+                "expires": 9999999999.0,
+                "httpOnly": True,
+                "secure": True,
+                "sameSite": "Lax",
+            },
+        ],
+        "origins": [],
+    }
+    save_state("example.com", state)
+    loaded = load_state("example.com")
+    assert loaded == state
+
+
+def test_load_state_returns_none_when_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
+    from webscraper.auth import load_state
+
+    assert load_state("nonexistent.com") is None
