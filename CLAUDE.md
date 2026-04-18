@@ -24,6 +24,8 @@ The CLI returns a canonical JSON envelope (markdown body, tables, forms, images,
 
 **For multi-step scraping** (crawl + extract across pages, consolidate results, authenticated sessions), delegate to the `web-scraper` subagent via the Agent tool instead of inlining the work in the main conversation. The subagent is defined in `.claude/agents/web-scraper.md`.
 
+**Where scraped data goes:** When you invoke `webscraper fetch` inside a project that has an `ai_working/` directory, use `--auto-out` — scraped envelopes land in `ai_working/scraped/<domain>/<timestamp>-<slug>.json`, consistent with the CLAUDE.md convention for transient work. Outside a project, `--auto-out` writes to `~/.webscraper/out/`.
+
 **Fallback.** Until v0.1 ships, `webscraper` does not exist on disk — in that case, use `WebFetch` and note the limitation.
 
 ## Common Commands

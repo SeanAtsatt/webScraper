@@ -131,9 +131,9 @@ Three candidate architectures were considered.
 | `cli` | Argument parsing, exit codes, stream routing | `fetch`, `render`, `log` |
 | `fetch.Dispatcher` | Tier selection, escalation rules, history | `Fetcher` implementations |
 | `fetch.FastFetcher` | HTTP(S) GET with retries, timeouts, status checks | `httpx` |
-| `fetch.BrowserFetcher` | Chrome profile copy, Playwright context, page render wait | `playwright`, `profile` |
+| `fetch.BrowserFetcher` | Per-domain auth state load, Playwright context, page render wait | `playwright`, `auth` |
 | `fetch.FirecrawlFetcher` (v0.3) | Firecrawl API call, response normalization | `httpx`, env key |
-| `profile` | Locate OS Chrome profile, copy to `$TMPDIR`, cleanup on exit | stdlib only |
+| `auth` | Per-domain Playwright storage-state load/save/list/prune | `tldextract`, stdlib |
 | `parse.HtmlParser` | HTML → (markdown, text, tables, forms, images, links) | `trafilatura`, `selectolax`, `markdownify` |
 | `envelope` | Pydantic `FetchResult` schema; JSON serialization | `pydantic` |
 | `render` | Markdown / HTML renderers off the envelope | stdlib only |
@@ -241,16 +241,16 @@ Each tier produces an unacceptable result (or raises). Dispatcher exhausts the c
 
 | # | Failure Mode | Impact | Mitigation |
 |---|-------------|--------|------------|
-| 1 | Chrome profile locked (Chrome is running) | Tier 2 can't launch | Copy profile to `$TMPDIR` per run; launch Playwright against the copy. Live profile stays untouched. |
-| 2 | Anti-bot challenge page served to Tier 2, looks like valid HTML | Tool reports success with garbage content | Challenge-page fingerprint list; dispatcher rejects matched pages as "unacceptable"; auto-escalates to Tier 3 when available, else exits 2. |
-| 3 | Trafilatura strips too much on dashboards / non-article pages | Empty `markdown` on valid pages | Fallback chain trafilatura → readability-lxml → whole-body cleanup; fixtures cover non-article pages. |
-| 4 | Scratch profile not cleaned up on crash | Disk fills over time; potential cookie leak | `try/finally` + atexit handler; `.gitignore` excludes scratch dir prefix; security gate audits `$TMPDIR`. |
+| 1 | Auth file malformed / unreadable | `fetch` exits 4 with a `forget <domain>` suggestion; `doctor` flags it. | Validate JSON on load; catch all IO/parse errors and surface a clear diagnostic. |
+| 2 | Auth file chmod > 600 | Credential exposure risk | `doctor` flags; `fetch` logs a warning but still loads. |
+| 3 | Anti-bot challenge page served to Tier 2, looks like valid HTML | Tool reports success with garbage content | Challenge-page fingerprint list; dispatcher rejects matched pages as "unacceptable"; auto-escalates to Tier 3 when available, else exits 2. |
+| 4 | Trafilatura strips too much on dashboards / non-article pages | Empty `markdown` on valid pages | Fallback chain trafilatura → readability-lxml → whole-body cleanup; fixtures cover non-article pages. |
 | 5 | Cookies or auth headers appear in structured logs | Credential leak | Redaction filter on the logger strips `Cookie`, `Set-Cookie`, `Authorization`, `X-Auth-*`; unit test enforces it. |
 | 6 | Playwright Chromium binary missing | Tier 2 fails with cryptic error | Startup check: run `playwright install --dry-run`; exit 4 with clear message if missing. |
 | 7 | Redirect loop on Tier 1 | Indefinite hang | httpx max_redirects=10; surpassing → `FetcherError(redirect_loop)`; escalate. |
 | 8 | Extremely large HTML (>50MB) blows memory | OOM | Hard body cap in httpx (default 50MB); exceed → `FetcherError(too_large)`; no escalation (Tier 2 would also OOM). |
 | 9 | Firecrawl API key missing when user explicitly requests `--tier=firecrawl` (v0.3) | Silent failure | Explicit env-var check; exit 4 with instructions. |
-| 10 | Clock skew breaks cookie `Expires` comparisons in profile copy | Auth fails inside Tier 2 | Use system time; document NTP requirement in README. |
+| 10 | Clock skew breaks cookie `Expires` comparisons in auth files | Stale sessions silently used | Use system time; `auth prune` relies on wall-clock `Expires`; document NTP requirement in README. |
 
 ## 8. Testing Plan
 

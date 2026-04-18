@@ -120,10 +120,19 @@ Fetch one page and emit the envelope.
 | `--tier <fast\|browser\|firecrawl>` | (auto) | Pin a tier; disable escalation |
 | `--render <json\|markdown\|html>` | `json` | Output format for stdout |
 | `--out <path>` | (stdout) | Write to file instead of stdout |
+| `--auto-out` | false | Save envelope to `ai_working/scraped/` (in project) or `~/.webscraper/out/` (ad-hoc) |
 | `--log-file <path>` | (stderr) | Redirect structured logs |
 | `--min-content-chars <n>` | `200` | Escalation threshold for "insufficient content" |
 | `--timeout <seconds>` | tier-specific | Override per-tier hard timeout |
 | `--quiet` | false | Suppress structured logs |
+
+### `webscraper login <url>` (v0.1.1)
+
+Opens a visible browser, lets you log in (including MFA), then saves the session to `~/.webscraper/auth/<domain>.json` (chmod 600). Run once per site.
+
+### `webscraper auth list|forget|prune` (v0.1.1)
+
+Manage saved auth sessions. `list` shows cookie counts and expiry; `forget <domain>` deletes a session; `prune` removes sessions with all cookies expired.
 
 ### `webscraper doctor` (v0.1)
 
@@ -165,21 +174,19 @@ Every successful fetch returns this shape. Fields are always present; empty arra
 
 `links[].kind` is classified as `nav | content | external | anchor` — this is what lets Claude drive an outer crawl loop by picking the right links to follow next.
 
-## Authentication model
+## Authenticated scraping
 
-Tier 2 reuses your **real Chrome profile** via a copy-on-run strategy:
+`webscraper` captures a session per site the first time you run `login`:
 
-1. At the start of each Tier 2 run, the tool locates your Chrome `Default` profile directory (e.g., `~/Library/Application Support/Google/Chrome/Default` on macOS).
-2. It copies the profile to a fresh directory under `$TMPDIR`, excluding OS lock files.
-3. Playwright launches against the copy.
-4. On exit (success or failure), the copy is deleted.
+    uv run webscraper login https://www.connectance.org/home
 
-Your live Chrome can stay running; the two instances never share state. You never have to export cookies or set up per-site credentials. If you're logged into the site in Chrome, the tool can reach it.
+A visible Chromium window opens. Log in (including MFA if any), then press Enter in the terminal. The session is saved to `~/.webscraper/auth/<domain>.json` with `chmod 600`, scoped to the registrable domain. Subsequent `fetch` calls auto-load it; `meta.auth_used` in the envelope reports the domain.
 
-**Limitations:**
+Manage sessions:
 
-- Sites with advanced bot-detection (Cloudflare, PerimeterX, Akamai) may still block Tier 2. The tool detects these challenge pages and escalates to Tier 3 (Firecrawl) when available, or exits with a diagnostic.
-- If Chrome forces a sync or MFA step on first run of a copied profile, that will fail headlessly. Workaround: run `webscraper doctor` to verify, or pin `--tier=fast` if the site doesn't require auth.
+    uv run webscraper auth list          # inventory with cookie counts + expiry
+    uv run webscraper auth forget <domain>
+    uv run webscraper auth prune         # remove sessions with all cookies expired
 
 ## Exit codes
 
@@ -254,6 +261,7 @@ All tests run offline against a local fixture server — no live network.
 | Version | Scope | Status |
 |---------|-------|--------|
 | v0.1 | `fetch`, `doctor`, Tiers 1–2, envelope, markdown + HTML renderers, Chrome-profile auth, E2E suite | Shipped |
+| v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Shipped |
 | v0.2 | `crawl`, `--download-images` | Not started |
 | v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Not started |
 | v0.4 (optional) | MCP server wrapper | Deferred |

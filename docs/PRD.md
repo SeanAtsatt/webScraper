@@ -24,7 +24,7 @@ This project builds that tool.
 
 1. **One command, any page.** `webscraper fetch <url>` returns a canonical JSON envelope for any page a human could view in Chrome, with auto-escalation across fetch backends when the cheaper tier fails.
 2. **AI-first output.** The envelope is designed for Claude Code to consume directly: clean markdown body, structured tables/forms/images, classified links. No LLM call inside the tool — Claude is the LLM.
-3. **Authenticated scraping via the user's real browser profile.** Sites where the user is already logged in should "just work" without per-site credential setup.
+3. **Authenticated scraping via per-domain Playwright storage state.** Users run `webscraper login <url>` once per site to capture a browser session; subsequent fetches auto-load the saved state by registrable domain. See `docs/ADR/ADR-002-per-domain-auth.md`.
 4. **Enforced E2E coverage.** Every advertised capability is pinned to a `[F-REQ-xxx]` functional requirement and verified by a Playwright-driven end-to-end test against a local fixture server.
 
 ### Success Metrics
@@ -206,6 +206,7 @@ Final dependency set captured in `pyproject.toml` at implementation time.
 | Phase | Scope | Status |
 |-------|-------|--------|
 | v0.1 MVP | `fetch` subcommand, Tiers 1–2, auto-escalation, envelope, markdown/html renderers, Chrome-profile auth, E2E fixture suite | Not Started |
+| v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Not Started |
 | v0.2 | `crawl` subcommand, `--download-images`, link-graph output | Not Started |
 | v0.3 | Tier 3 (Firecrawl) with escalation from Tier 2 | Not Started |
 | v0.4 (optional) | MCP server wrapper | Deferred |
@@ -214,10 +215,9 @@ Final dependency set captured in `pyproject.toml` at implementation time.
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Chrome profile is locked while Chrome is running; `launch_persistent_context` fails | Tier 2 unusable when user has Chrome open | Copy the profile to a scratch directory at start of each Tier 2 run; launch Playwright against the copy. Accept ~1-2s startup overhead. |
+| Auth-state file on disk | Credential exposure if `~/.webscraper/auth/*.json` is read | `chmod 600`, per-domain scoping, `doctor` audits file modes on every run |
 | Anti-bot systems detect Playwright and serve challenge pages even with a real profile | Tier 2 silently returns a challenge page as "content" | Escalation detector recognizes common challenge-page fingerprints (Cloudflare, PerimeterX, Akamai) and marks the tier as failed, escalating to Tier 3 (when available) or exiting with a diagnostic. |
 | Trafilatura strips content aggressively on non-article pages (dashboards, apps) | Markdown body is empty or wrong for valid pages | Fallback chain: trafilatura → readability-lxml → whole-page cleanup. Tests cover non-article pages explicitly. |
-| Users accidentally commit scratch profile data or cookies | Credential leak | `.gitignore` covers scratch dir prefix; pre-commit hook greps for known cookie patterns; `security_gate.sh` audits. |
 | Tier 3 (Firecrawl) burns budget on pages that never needed it | Unexpected cost | Tier 3 is strictly opt-in for v0.3; auto-escalation requires an explicit `--allow-paid` flag. |
 | Playwright install (browser binaries) fails in CI | E2E suite can't run | CI caches Playwright browsers; `verify.sh` checks the install and fails fast with a clear message. |
 
@@ -235,7 +235,7 @@ These will be inserted into `FUNCTIONAL-REQUIREMENTS.md` when implementation beg
 |----|----------|-------------|--------------|
 | F-REQ-001 | fetch | Static page returns valid envelope via Tier 1 | response |
 | F-REQ-002 | fetch | JS-rendered page escalates Tier 1 → Tier 2 and returns rendered content | response |
-| F-REQ-003 | fetch | Login-gated page is retrievable via copied Chrome profile | response |
+| F-REQ-003 | fetch | Login-gated page is retrievable via saved per-domain Playwright storage state | response |
 | F-REQ-004 | fetch | `--tier` override is honored; no silent escalation | response |
 | F-REQ-005 | content | Tables surface as `{headers, rows}` | response |
 | F-REQ-006 | content | Forms surface as `{action, method, fields[]}` | response |
