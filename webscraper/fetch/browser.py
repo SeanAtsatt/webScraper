@@ -1,30 +1,38 @@
-"""Tier 2 fetcher: Playwright with a copied Chrome profile."""
+"""Tier 2 fetcher: Playwright headless Chromium with optional per-domain storage state."""
 
 import time
-from pathlib import Path
+from typing import cast
+from urllib.parse import urlparse
 
+from playwright.sync_api import StorageState, sync_playwright
 from playwright.sync_api import TimeoutError as PWTimeoutError
-from playwright.sync_api import sync_playwright
 
-from webscraper.errors import EnvironmentError, FetcherError, TimeoutError
+from webscraper.auth import load_state, registrable_domain
+from webscraper.errors import EnvironmentError, FetcherError, TimeoutError, UsageError
 from webscraper.fetch.base import FetcherResult, FetchOptions
-from webscraper.profile import copy_profile, locate_profile
 
 
 class BrowserFetcher:
     name = "browser"
 
     def fetch(self, url: str, opts: FetchOptions) -> FetcherResult:
-        profile_src = (
-            Path(opts.chrome_profile_path) if opts.chrome_profile_path else locate_profile()
-        )
         start = time.monotonic()
-        with copy_profile(profile_src) as scratch:
-            try:
-                with sync_playwright() as p:
-                    ctx = p.chromium.launch_persistent_context(
-                        str(scratch),
-                        headless=True,
+
+        try:
+            domain = registrable_domain(url)
+        except UsageError:
+            # Non-ICANN hosts (IPs, localhost). Fall back to the bare hostname so
+            # integration tests and local experimentation can still use auth files.
+            domain = urlparse(url).hostname or ""
+
+        state = load_state(domain) if domain else None
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                try:
+                    ctx = browser.new_context(
+                        storage_state=cast(StorageState, state) if state is not None else None,
                     )
                     try:
                         page = ctx.new_page()
@@ -44,15 +52,20 @@ class BrowserFetcher:
                         content_type = response.header_value("content-type") or ""
                     finally:
                         ctx.close()
-            except (FetcherError, TimeoutError):
-                raise
-            except Exception as exc:
-                raise EnvironmentError(f"Playwright launch failed: {exc}") from exc
+                finally:
+                    browser.close()
+        except (FetcherError, TimeoutError):
+            raise
+        except Exception as exc:
+            raise EnvironmentError(f"Playwright launch failed: {exc}") from exc
+
         elapsed = int((time.monotonic() - start) * 1000)
+        extra = {"auth_domain": domain} if state is not None else {}
         return FetcherResult(
             html=html,
             final_url=final_url,
             http_status=status,
             content_type=content_type,
             elapsed_ms=elapsed,
+            extra=extra,
         )

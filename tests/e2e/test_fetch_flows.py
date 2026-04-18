@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
 from playwright.sync_api import sync_playwright
 
 
@@ -55,6 +56,10 @@ def test_spa_escalates_to_tier2(fixture_server: str) -> None:
 
 
 # [F-REQ-003]
+@pytest.mark.xfail(
+    reason="v0.1 chrome_profile_path path removed in v0.1.1; rewritten in Task 15",
+    strict=False,
+)
 def test_auth_gated_page_via_copied_profile(fixture_server: str, tmp_path: Path) -> None:
     # Seed a headless Chrome profile with the fixture auth cookie
     profile = tmp_path / "auth-profile"
@@ -148,6 +153,10 @@ def test_render_html(fixture_server: str) -> None:
 
 
 # [F-REQ-011]
+@pytest.mark.xfail(
+    reason="v0.1 chrome_profile_path path removed in v0.1.1; rewritten in Task 15",
+    strict=False,
+)
 def test_no_cookies_or_profile_bytes_in_stdout(fixture_server: str, tmp_path: Path) -> None:
     profile = tmp_path / "auth-profile"
     profile.mkdir()
@@ -172,6 +181,10 @@ def test_no_cookies_or_profile_bytes_in_stdout(fixture_server: str, tmp_path: Pa
 
 
 # [F-REQ-012]
+@pytest.mark.xfail(
+    reason="v0.1 chrome_profile_path path removed in v0.1.1; rewritten in Task 15",
+    strict=False,
+)
 def test_scratch_profile_cleaned_up_after_run(fixture_server: str, tmp_path: Path) -> None:
     import tempfile
 
