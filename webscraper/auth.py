@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -56,3 +58,61 @@ def load_state(domain: str) -> dict[str, Any] | None:
     if not path.exists():
         return None
     return cast("dict[str, Any]", json.loads(path.read_text(encoding="utf-8")))
+
+
+@dataclass(frozen=True)
+class SessionSummary:
+    domain: str
+    path: Path
+    cookie_count: int  # -1 indicates malformed file
+    earliest_session_expiry: datetime | None
+    file_mode: int
+
+
+def _earliest_future_expiry(cookies: list[dict[str, Any]]) -> datetime | None:
+    """Return the earliest future `expires` timestamp across persistent cookies.
+
+    Session-scoped cookies (no `expires`) and already-expired cookies are ignored.
+    """
+    now = datetime.now(tz=UTC).timestamp()
+    futures = [
+        c["expires"]
+        for c in cookies
+        if isinstance(c.get("expires"), (int, float)) and c["expires"] > now
+    ]
+    if not futures:
+        return None
+    return datetime.fromtimestamp(min(futures), tz=UTC)
+
+
+def list_sessions() -> list[SessionSummary]:
+    d = auth_dir()
+    if not d.exists():
+        return []
+    out: list[SessionSummary] = []
+    for path in sorted(d.glob("*.json")):
+        domain = path.stem
+        mode = path.stat().st_mode & 0o777
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+            cookies = state.get("cookies", [])
+            out.append(
+                SessionSummary(
+                    domain=domain,
+                    path=path,
+                    cookie_count=len(cookies),
+                    earliest_session_expiry=_earliest_future_expiry(cookies),
+                    file_mode=mode,
+                )
+            )
+        except (json.JSONDecodeError, OSError):
+            out.append(
+                SessionSummary(
+                    domain=domain,
+                    path=path,
+                    cookie_count=-1,
+                    earliest_session_expiry=None,
+                    file_mode=mode,
+                )
+            )
+    return out
