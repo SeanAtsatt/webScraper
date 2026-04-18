@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 
+# [F-NONE]
 def test_doctor_runs_and_reports_known_checks(tmp_path: Path) -> None:
     result = subprocess.run(
         [sys.executable, "-m", "webscraper", "doctor"],

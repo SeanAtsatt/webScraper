@@ -9,6 +9,7 @@ from webscraper.fetch.base import FetchOptions
 from webscraper.fetch.browser import BrowserFetcher
 
 
+# [F-REQ-002]
 def test_browser_renders_spa_content(fixture_server: str) -> None:
     f = BrowserFetcher()
     result = f.fetch(f"{fixture_server}/spa/app", FetchOptions())
@@ -48,6 +49,7 @@ def seeded_auth(tmp_path: Path, fixture_server: str, monkeypatch: pytest.MonkeyP
     return domain
 
 
+# [F-REQ-003]
 def test_browser_loads_storage_state_for_matching_domain(
     seeded_auth: str, fixture_server: str
 ) -> None:

@@ -28,6 +28,7 @@ def ws_home(tmp_path: Path) -> Path:
     return tmp_path / "wshome"
 
 
+# [F-REQ-016]
 def test_login_saves_storage_state(fixture_server: str, ws_home: Path) -> None:
     # Use /auth/login so the fixture server sets a persistent cookie during the
     # interactive session; the test simulates "user pressed Enter" via stdin.
@@ -45,6 +46,7 @@ def test_login_saves_storage_state(fixture_server: str, ws_home: Path) -> None:
     assert any(c.get("name") == "fixture_auth" for c in state["cookies"])
 
 
+# [F-REQ-019]
 def test_auth_list_reports_saved_session(fixture_server: str, ws_home: Path) -> None:
     _run(
         "login",
@@ -57,6 +59,7 @@ def test_auth_list_reports_saved_session(fixture_server: str, ws_home: Path) -> 
     assert "127.0.0.1" in result.stdout or "127.0.0.1" in result.stderr
 
 
+# [F-REQ-020]
 def test_auth_forget_deletes_saved_session(fixture_server: str, ws_home: Path) -> None:
     _run(
         "login",
@@ -70,6 +73,7 @@ def test_auth_forget_deletes_saved_session(fixture_server: str, ws_home: Path) -
     assert not list((ws_home / "auth").glob("*.json"))
 
 
+# [F-REQ-020]
 def test_auth_prune_removes_session_only_files(ws_home: Path) -> None:
     # Pre-seed two fake auth files directly
     (ws_home / "auth").mkdir(parents=True)

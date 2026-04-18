@@ -9,16 +9,19 @@ from webscraper.auth import auth_dir, auth_file_for, registrable_domain
 from webscraper.errors import UsageError
 
 
+# [F-NONE]
 def test_registrable_domain_strips_subdomains() -> None:
     assert registrable_domain("https://www.connectance.org/home") == "connectance.org"
     assert registrable_domain("https://app.notion.so/workspace") == "notion.so"
 
 
+# [F-NONE]
 def test_registrable_domain_handles_multilevel_tlds() -> None:
     assert registrable_domain("https://user.github.io/repo") == "user.github.io"
     assert registrable_domain("https://www.example.co.uk/path") == "example.co.uk"
 
 
+# [F-NONE]
 def test_registrable_domain_raises_on_ip_or_localhost() -> None:
     with pytest.raises(UsageError):
         registrable_domain("http://127.0.0.1:8080/")
@@ -26,6 +29,7 @@ def test_registrable_domain_raises_on_ip_or_localhost() -> None:
         registrable_domain("http://localhost/")
 
 
+# [F-NONE]
 def test_auth_file_for_returns_path_under_auth_dir(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -34,11 +38,13 @@ def test_auth_file_for_returns_path_under_auth_dir(
     assert path == tmp_path / "auth" / "connectance.org.json"
 
 
+# [F-NONE]
 def test_auth_dir_returns_auth_subdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
     assert auth_dir() == tmp_path / "auth"
 
 
+# [F-REQ-022]
 def test_save_state_writes_chmod_600(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
     from webscraper.auth import save_state
@@ -50,6 +56,7 @@ def test_save_state_writes_chmod_600(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert mode == 0o600, f"expected 0o600, got {oct(mode)}"
 
 
+# [F-REQ-016]
 def test_save_state_round_trips_with_load_state(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -76,6 +83,7 @@ def test_save_state_round_trips_with_load_state(
     assert loaded == state
 
 
+# [F-REQ-017]
 def test_load_state_returns_none_when_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -85,6 +93,7 @@ def test_load_state_returns_none_when_missing(
     assert load_state("nonexistent.com") is None
 
 
+# [F-REQ-019]
 def test_list_sessions_empty_when_dir_absent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -94,6 +103,7 @@ def test_list_sessions_empty_when_dir_absent(
     assert list_sessions() == []
 
 
+# [F-REQ-019]
 def test_list_sessions_reports_cookie_counts_and_expiry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -134,6 +144,7 @@ def test_list_sessions_reports_cookie_counts_and_expiry(
     assert s.file_mode == 0o600
 
 
+# [F-REQ-019]
 def test_list_sessions_earliest_expiry_none_when_only_session_cookies(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -148,6 +159,7 @@ def test_list_sessions_earliest_expiry_none_when_only_session_cookies(
     assert summaries[0].earliest_session_expiry is None
 
 
+# [F-REQ-019]
 def test_list_sessions_skips_malformed_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -162,6 +174,7 @@ def test_list_sessions_skips_malformed_files(
     assert any(s.domain == "broken" and s.cookie_count == -1 for s in summaries)
 
 
+# [F-REQ-020]
 def test_forget_removes_existing_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
     from webscraper.auth import forget, save_state
@@ -171,6 +184,7 @@ def test_forget_removes_existing_file(tmp_path: Path, monkeypatch: pytest.Monkey
     assert not (tmp_path / "auth" / "a.com.json").exists()
 
 
+# [F-REQ-020]
 def test_forget_returns_false_when_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path))
     from webscraper.auth import forget
@@ -178,6 +192,7 @@ def test_forget_returns_false_when_absent(tmp_path: Path, monkeypatch: pytest.Mo
     assert forget("nonexistent.com") is False
 
 
+# [F-REQ-020]
 def test_prune_removes_only_domains_with_no_future_expiry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
