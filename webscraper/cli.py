@@ -69,6 +69,20 @@ def _parser() -> argparse.ArgumentParser:
     forget_p.add_argument("domain")
     auth_sub.add_parser("prune", help="remove sessions whose cookies have all expired")
 
+    crawl = sub.add_parser("crawl", help="crawl a seed URL's same-site links")
+    crawl.add_argument("seed")
+    crawl.add_argument("--max-depth", type=int, default=3)
+    crawl.add_argument("--max-pages", type=int, default=200)
+    crawl.add_argument("--concurrency", type=int, default=4)
+    crawl.add_argument("--delay-ms", type=int, default=250)
+    crawl.add_argument("--include", action="append", default=[])
+    crawl.add_argument("--exclude", action="append", default=[])
+    crawl.add_argument("--no-robots", action="store_true")
+    crawl.add_argument("--tier", choices=["fast", "browser"], default=None)
+    crawl.add_argument("--out", type=Path, default=None)
+    crawl.add_argument("--auto-out", action="store_true")
+    crawl.add_argument("--quiet", action="store_true")
+
     return p
 
 
@@ -198,6 +212,37 @@ def _run_auth(args: argparse.Namespace) -> int:
     raise UsageError(f"unknown auth subcommand: {args.auth_command}")
 
 
+def _run_crawl(args: argparse.Namespace) -> int:
+    from datetime import UTC, datetime
+
+    from webscraper.crawl import CrawlOptions, run_crawl
+    from webscraper.out import resolve_crawl_root
+
+    _validate_url(args.seed)
+
+    if args.out is not None:
+        output_root = args.out
+    else:
+        output_root = resolve_crawl_root(seed=args.seed, cwd=Path.cwd(), now=datetime.now(tz=UTC))
+
+    opts = CrawlOptions(
+        seed=args.seed,
+        output_root=output_root,
+        max_depth=args.max_depth,
+        max_pages=args.max_pages,
+        concurrency=args.concurrency,
+        delay_ms=args.delay_ms,
+        include=tuple(args.include),
+        exclude=tuple(args.exclude),
+        respect_robots=not args.no_robots,
+        forced_tier=args.tier,
+    )
+    result = run_crawl(opts)
+    sys.stderr.write(f"manifest: {result.manifest_path}\n")
+    sys.stderr.write(f"crawled: {result.pages_crawled}, failed: {result.pages_failed}\n")
+    return result.exit_code
+
+
 def _emit(envelope: FetchResult, args: argparse.Namespace, out_path: Path | None) -> None:
     if args.render == "json":
         payload = envelope.model_dump_json(indent=2)
@@ -235,6 +280,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_doctor()
         if args.command == "auth":
             return _run_auth(args)
+        if args.command == "crawl":
+            return _run_crawl(args)
         parser.print_help()
         return EXIT_USAGE
     except UsageError as exc:
