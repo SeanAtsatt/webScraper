@@ -43,3 +43,13 @@
 | F-REQ-020 | auth | `auth forget` and `auth prune` remove files correctly | response |
 | F-REQ-021 | output | `--auto-out` writes to `ai_working/scraped/` when a project ancestor is found; else `~/.webscraper/out/` | response |
 | F-REQ-022 | security | Auth files are `chmod 600` on save; cookies/auth headers never appear in stdout/stderr/logs | response |
+| F-REQ-023 | crawl | `crawl <seed>` produces per-page files + manifest.json | response |
+| F-REQ-024 | crawl | `--max-depth` bounds the crawl | response |
+| F-REQ-025 | crawl | `--max-pages` hard-caps the crawl | response |
+| F-REQ-026 | crawl | Same-registrable-domain scope; out-of-scope links not enqueued | response |
+| F-REQ-027 | crawl | `--include` / `--exclude` glob patterns filter paths | response |
+| F-REQ-028 | crawl | `robots.txt` respected by default; `--no-robots` overrides | response |
+| F-REQ-029 | crawl | URL normalization dedups tracking params, fragments, and query-param order | response |
+| F-REQ-030 | crawl | Partial-failure exit code 5; successful pages still written | response |
+| F-REQ-031 | crawl | Manifest records `discovered_from` enabling link-graph reconstruction | response |
+| F-REQ-032 | crawl | Per-page auth inherited from saved `~/.webscraper/auth/<domain>.json` | response |
