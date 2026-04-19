@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -51,3 +52,28 @@ def resolve_auto_out(
     slug = slugify(path_segments[-1]) if path_segments else "index"
     ext = _EXT[render_format]
     return base / domain / f"{ts}-{slug}.{ext}"
+
+
+def resolve_crawl_root(*, seed: str, cwd: Path, now: datetime) -> Path:
+    """Resolve the per-run output directory for a crawl: base/<domain>/<timestamp>."""
+    try:
+        domain = registrable_domain(seed)
+    except UsageError:
+        domain = urlparse(seed).hostname or ""
+    project = _find_ai_working_ancestor(cwd)
+    base = project / "ai_working" / "scraped" if project is not None else webscraper_home() / "out"
+    ts = now.strftime("%Y-%m-%dT%H-%M-%SZ")
+    return base / domain / ts
+
+
+def slugify_for_url(url: str) -> str:
+    """Stable short slug for a URL: last-path-segment + 6-hex-char hash of normalized URL."""
+    from webscraper.crawl.queue import normalize_url
+
+    parts = urlparse(url)
+    segments = [p for p in parts.path.split("/") if p]
+    tail = segments[-1] if segments else "index"
+    base = slugify(tail)
+    canon = normalize_url(url)
+    digest = hashlib.sha256(canon.encode("utf-8")).hexdigest()[:6]
+    return f"{base}-{digest}"
