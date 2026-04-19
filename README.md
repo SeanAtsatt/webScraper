@@ -138,9 +138,9 @@ Manage saved auth sessions. `list` shows cookie counts and expiry; `forget <doma
 
 Prints environment health and exits 0 (ready) / non-zero (missing prerequisites).
 
-### `webscraper crawl <seed>` (v0.2, not yet implemented)
+### `webscraper crawl <seed>` (v0.2)
 
-Bounded same-origin crawl starting from `<seed>`. Flags will include `--max-depth`, `--include`, `--exclude`, `--concurrency`, `--download-images`, `--respect-robots` (default true).
+Bounded same-registrable-domain crawl. See [Crawling](#crawling) above for full flag reference.
 
 ## Output envelope
 
@@ -187,6 +187,32 @@ Manage sessions:
     uv run webscraper auth list          # inventory with cookie counts + expiry
     uv run webscraper auth forget <domain>
     uv run webscraper auth prune         # remove sessions with all cookies expired
+
+## Crawling
+
+`webscraper crawl <seed>` walks a site's same-site links (registrable-domain scope), fetches each page, and writes per-page envelopes plus a `manifest.json`.
+
+    uv run webscraper crawl https://docs.example.com/
+
+Default behavior: max-depth 3, max-pages 200, 4 concurrent workers with 250ms per-worker delay, respects `robots.txt`. Output lands in `./ai_working/scraped/<domain>/<run-timestamp>/` when run inside a project with an `ai_working/` folder, else `~/.webscraper/out/...`.
+
+Flags:
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--max-depth N` | 3 | Maximum link depth from seed |
+| `--max-pages N` | 200 | Hard cap on crawled pages |
+| `--concurrency N` | 4 | Parallel workers |
+| `--delay-ms N` | 250 | Per-worker delay between requests (politeness) |
+| `--include GLOB` | none | Only crawl paths matching (repeatable) |
+| `--exclude GLOB` | none | Skip paths matching (repeatable) |
+| `--no-robots` | false | Disable robots.txt respect |
+| `--tier fast\|browser` | auto | Pin tier for every page (disables escalation) |
+| `--out PATH` | (auto) | Override output directory |
+| `--auto-out` | false | Force auto-resolved path (same as default) |
+| `--quiet` | false | Suppress per-page structured logs |
+
+Exit codes: `0` all pages succeeded, `5` some pages failed (crawl completed), `2` crawl aborted, `3` usage error, `4` environment error.
 
 ## Exit codes
 
@@ -262,7 +288,7 @@ All tests run offline against a local fixture server — no live network.
 |---------|-------|--------|
 | v0.1 | `fetch`, `doctor`, Tiers 1–2, envelope, markdown + HTML renderers, Chrome-profile auth, E2E suite | Shipped |
 | v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Shipped |
-| v0.2 | `crawl`, `--download-images` | Not started |
+| v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
 | v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Not started |
 | v0.4 (optional) | MCP server wrapper | Deferred |
 

@@ -52,9 +52,20 @@ This project builds that tool.
 - Structured logs (JSON lines to stderr by default; `--log-file <path>` to redirect) with cookie/credential redaction
 - Playwright-based E2E test suite driven by a local fixture server
 
+### In Scope (v0.2)
+
+- `webscraper crawl <seed>` bounded same-registrable-domain crawl
+- Asyncio worker pool (`--concurrency`, default 4) with per-worker delay (`--delay-ms`, default 250)
+- `robots.txt` respect by default (`--no-robots` to override)
+- `--max-depth` (default 3) and `--max-pages` (default 200) safety bounds
+- `--include` / `--exclude` glob patterns against URL path
+- URL normalization + dedup: drop fragment, sort query params, strip tracking params
+- Per-page envelope files + `manifest.json` with link-graph via `discovered_from`
+- Per-page auth inherited from `~/.webscraper/auth/<domain>.json`
+- New exit code 5 for "partial failure" (crawl completed but some pages failed)
+
 ### In Scope (Roadmap — later versions)
 
-- **v0.2**: `webscraper crawl <seed>` — bounded same-origin crawl with `--max-depth`, `--include`, `--exclude`, `robots.txt` respect; `--download-images`
 - **v0.3**: Tier 3 backend (Firecrawl API); tier-3 escalation on persistent Tier-2 failure
 - **v0.4 (optional)**: MCP server wrapper around the CLI, if invocation friction proves real in day-to-day use
 
@@ -207,7 +218,7 @@ Final dependency set captured in `pyproject.toml` at implementation time.
 |-------|-------|--------|
 | v0.1 MVP | `fetch` subcommand, Tiers 1–2, auto-escalation, envelope, markdown/html renderers, Chrome-profile auth, E2E fixture suite | Not Started |
 | v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Not Started |
-| v0.2 | `crawl` subcommand, `--download-images`, link-graph output | Not Started |
+| v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
 | v0.3 | Tier 3 (Firecrawl) with escalation from Tier 2 | Not Started |
 | v0.4 (optional) | MCP server wrapper | Deferred |
 
@@ -248,6 +259,16 @@ These will be inserted into `FUNCTIONAL-REQUIREMENTS.md` when implementation beg
 | F-REQ-013 | errors | Malformed URL (parse error) exits non-zero with a diagnostic JSON error | response |
 | F-REQ-014 | errors | Network-unreachable host exits non-zero with a diagnostic JSON error | response |
 | F-REQ-015 | errors | All enabled tiers failing exits non-zero with a diagnostic including full `tier_history` | response |
+| F-REQ-023 | crawl | `crawl <seed>` produces per-page files + manifest.json | response |
+| F-REQ-024 | crawl | `--max-depth` bounds the crawl | response |
+| F-REQ-025 | crawl | `--max-pages` hard-caps the crawl | response |
+| F-REQ-026 | crawl | Same-registrable-domain scope; out-of-scope links not enqueued | response |
+| F-REQ-027 | crawl | `--include` / `--exclude` glob patterns filter paths | response |
+| F-REQ-028 | crawl | `robots.txt` respected by default; `--no-robots` overrides | response |
+| F-REQ-029 | crawl | URL normalization dedups tracking params, fragments, and query-param order | response |
+| F-REQ-030 | crawl | Partial-failure exit code 5; successful pages still written | response |
+| F-REQ-031 | crawl | Manifest records `discovered_from` enabling link-graph reconstruction | response |
+| F-REQ-032 | crawl | Per-page auth inherited from saved `~/.webscraper/auth/<domain>.json` | response |
 
 ---
 

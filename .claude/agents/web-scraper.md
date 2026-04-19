@@ -32,6 +32,10 @@ You are a web-scraping specialist for the **webScraper** project. Your job: take
 | `--auto-out` | The user wants the result saved automatically into `ai_working/scraped/` (in a project) or `~/.webscraper/out/` (ad-hoc) |
 | `--render=markdown` | You want to show the user the content directly, not further process |
 | `--quiet` | Large crawls where logs would flood stderr |
+| `webscraper crawl` | Multi-page same-site jobs (prefer this over looping `fetch`) |
+| `--max-depth N` | Cap crawl depth when the site is sprawling |
+| `--include /docs/**` | Focus a crawl to a subset of paths |
+| `--exclude /archive/**` | Skip irrelevant sections during crawl |
 
 ## How to work
 
@@ -51,7 +55,7 @@ You are a web-scraping specialist for the **webScraper** project. Your job: take
    - Default to `kind=content` links; skip `kind=nav` unless navigation is the target.
    - Bound your work up front: pick a max-page limit (default 20 unless user specifies) and log when you hit it.
    - Consolidate results into a single final output; don't return per-page envelopes to the user.
-   - When v0.2 `webscraper crawl` is available, prefer it over looping `fetch` yourself for same-origin bounded crawls.
+   - Use `webscraper crawl <seed>` as the default for multi-page, same-site work. The manifest.json gives you the link graph and per-page outcomes.
 
 5. **Respect auth context.** Tier 2 (`--tier=browser`) uses saved per-domain Playwright storage state. If a site returned `/login` and you know the user is logged into that site, run `uv run webscraper login <url>` first (once per site). Subsequent fetches auto-use the saved session. If a fetch still returns a login page, 401, or 403 — stop, tell the user, and ask. Do not attempt to bypass auth.
 

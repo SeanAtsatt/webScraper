@@ -232,10 +232,22 @@ Each tier produces an unacceptable result (or raises). Dispatcher exhausts the c
 
 ## 6. Concurrency, Caching, and Timeouts
 
-- **Concurrency:** a single fetch is sequential. No internal concurrency in v0.1–v0.2. v0.2 crawl uses a bounded asyncio worker pool (`--concurrency`, default 4).
+- **Concurrency:** a single fetch is sequential. Crawl uses a bounded asyncio worker pool (`--concurrency`, default 4).
 - **Caching:** none. Each run is independent. Claude Code can layer caching externally if needed.
 - **Timeouts:** Tier 1 — 10s connect, 30s read, 2 retries with jittered exponential backoff. Tier 2 — 30s `networkidle` wait with 45s hard cap. Tier 3 — Firecrawl's own defaults.
 - **Cancellation:** SIGINT propagates; Playwright context is closed in a `try/finally` so the scratch profile is always cleaned up.
+
+### 6.5 Crawl pipeline (v0.2+)
+
+`webscraper crawl <seed>` drives the per-page Dispatcher through an asyncio worker pool:
+
+- **Queue** (`webscraper.crawl.queue.CrawlQueue`): asyncio.Queue with per-URL dedup (on normalized URL) and a `max_pages` cap.
+- **Scope** (`webscraper.crawl.scope`): same-registrable-domain check via tldextract; Unix-glob include/exclude against URL path.
+- **Robots** (`webscraper.crawl.robots.RobotsChecker`): fetches `robots.txt` once per seed; default-allows on fetch failure.
+- **Manifest** (`webscraper.crawl.manifest.Manifest`): atomic JSON flush at end of run; records per-page outcomes and `discovered_from` for link-graph reconstruction.
+- **Orchestration** (`webscraper.crawl.run_crawl`): `N` async workers pop from the queue, respect `delay_ms` politeness, invoke the sync Dispatcher via `asyncio.to_thread`, write per-page envelopes, enqueue discovered links under the depth cap.
+
+Per-page auth is inherited automatically because every page goes through the same `BrowserFetcher` used by `fetch`, which looks up storage state by registrable domain.
 
 ## 7. Failure Modes (Top 10) + Mitigations
 
@@ -251,6 +263,7 @@ Each tier produces an unacceptable result (or raises). Dispatcher exhausts the c
 | 8 | Extremely large HTML (>50MB) blows memory | OOM | Hard body cap in httpx (default 50MB); exceed → `FetcherError(too_large)`; no escalation (Tier 2 would also OOM). |
 | 9 | Firecrawl API key missing when user explicitly requests `--tier=firecrawl` (v0.3) | Silent failure | Explicit env-var check; exit 4 with instructions. |
 | 10 | Clock skew breaks cookie `Expires` comparisons in auth files | Stale sessions silently used | Use system time; `auth prune` relies on wall-clock `Expires`; document NTP requirement in README. |
+| Crawl page failure | Recorded in manifest with `status: failed`; crawl continues; exit 5 at end. |
 
 ## 8. Testing Plan
 
