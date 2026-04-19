@@ -70,6 +70,50 @@ def create_app() -> FastAPI:
     def oversize() -> PlainTextResponse:
         return PlainTextResponse("x" * (60 * 1024 * 1024))
 
+    @app.get("/crawl/", response_class=HTMLResponse)
+    @app.get("/crawl/index", response_class=HTMLResponse)
+    def crawl_index() -> str:
+        return read("crawl_index.html")
+
+    @app.get("/crawl/a", response_class=HTMLResponse)
+    def crawl_a() -> str:
+        return read("crawl_a.html")
+
+    @app.get("/crawl/a1", response_class=HTMLResponse)
+    def crawl_a1() -> str:
+        return read("crawl_a1.html")
+
+    @app.get("/crawl/a2", response_class=HTMLResponse)
+    def crawl_a2() -> str:
+        return read("crawl_a2.html")
+
+    @app.get("/crawl/b", response_class=HTMLResponse)
+    def crawl_b() -> str:
+        return read("crawl_b.html")
+
+    @app.get("/crawl/b1", response_class=HTMLResponse)
+    def crawl_b1() -> str:
+        return read("crawl_b1.html")
+
+    @app.get("/crawl/admin/secret", response_class=HTMLResponse)
+    def crawl_admin_secret() -> str:
+        return read("crawl_admin_secret.html")
+
+    @app.get("/crawl/loop", response_class=HTMLResponse)
+    def crawl_loop() -> str:
+        return read("crawl_loop.html")
+
+    @app.get("/crawl/slow-page", response_class=HTMLResponse)
+    def crawl_slow_page() -> str:
+        import time
+
+        time.sleep(3)
+        return "<html><body><p>slow page body</p></body></html>"
+
+    @app.get("/robots.txt", response_class=PlainTextResponse)
+    def robots_txt() -> str:
+        return read("robots.txt")
+
     @app.get("/img/{name}")
     def image_asset(name: str) -> Response:
         return Response(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64, media_type="image/png")
