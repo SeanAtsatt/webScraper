@@ -78,3 +78,18 @@ def test_queue_visited_count_tracks_enqueues() -> None:
         return q.visited_count
 
     assert asyncio.run(go()) == 2
+
+
+def test_queue_mark_done_tracks_in_flight() -> None:
+    async def go() -> tuple[bool, bool, bool]:
+        q = CrawlQueue(max_pages=10)
+        await q.enqueue("https://ex.com/1", 0, None)
+        a = q.is_drained()  # queue not empty → not drained
+        _ = await q.pop()
+        b = q.is_drained()  # queue empty but in-flight=1 → not drained
+        q.mark_done()
+        c = q.is_drained()  # empty AND in-flight=0 → drained
+        return a, b, c
+
+    a, b, c = asyncio.run(go())
+    assert (a, b, c) == (False, False, True)

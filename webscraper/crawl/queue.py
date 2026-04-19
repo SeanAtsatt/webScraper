@@ -44,6 +44,7 @@ class CrawlQueue:
         self._queue: asyncio.Queue[tuple[str, int, str | None] | None] = asyncio.Queue()
         self._visited: set[str] = set()
         self._closed = False
+        self._in_flight = 0
 
     async def enqueue(self, url: str, depth: int, discovered_from: str | None) -> bool:
         """Return True if newly enqueued; False if duplicate or cap reached."""
@@ -59,7 +60,17 @@ class CrawlQueue:
     async def pop(self) -> tuple[str, int, str | None] | None:
         """Return next (url, depth, discovered_from) or None when closed + drained."""
         item = await self._queue.get()
+        if item is not None:
+            self._in_flight += 1
         return item
+
+    def mark_done(self) -> None:
+        """Signal that the worker has finished processing the last popped item."""
+        self._in_flight = max(0, self._in_flight - 1)
+
+    def is_drained(self) -> bool:
+        """Return True when the queue is empty and no items are in-flight."""
+        return self._queue.empty() and self._in_flight == 0
 
     def close(self) -> None:
         """Signal workers to exit once the queue drains. Call exactly once."""
