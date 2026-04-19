@@ -5,28 +5,34 @@ import asyncio
 from webscraper.crawl.queue import CrawlQueue, normalize_url
 
 
+# [F-REQ-029]
 def test_normalize_drops_fragment() -> None:
     assert normalize_url("https://ex.com/p#section") == "https://ex.com/p"
 
 
+# [F-REQ-029]
 def test_normalize_strips_tracking_params() -> None:
     out = normalize_url("https://ex.com/p?utm_source=x&utm_medium=y&real=1&fbclid=abc")
     assert out == "https://ex.com/p?real=1"
 
 
+# [F-REQ-029]
 def test_normalize_sorts_query_params() -> None:
     out = normalize_url("https://ex.com/p?b=2&a=1&c=3")
     assert out == "https://ex.com/p?a=1&b=2&c=3"
 
 
+# [F-REQ-029]
 def test_normalize_lowercases_scheme_and_host() -> None:
     assert normalize_url("HTTPS://Example.COM/Path") == "https://example.com/Path"
 
 
+# [F-REQ-029]
 def test_normalize_preserves_path_case() -> None:
     assert normalize_url("https://ex.com/CaSe") == "https://ex.com/CaSe"
 
 
+# [F-REQ-029]
 def test_queue_enqueue_deduplicates_normalized_urls() -> None:
     async def go() -> tuple[bool, bool]:
         q = CrawlQueue(max_pages=10)
@@ -39,6 +45,7 @@ def test_queue_enqueue_deduplicates_normalized_urls() -> None:
     assert second is False
 
 
+# [F-REQ-025]
 def test_queue_respects_max_pages() -> None:
     async def go() -> tuple[bool, bool, bool]:
         q = CrawlQueue(max_pages=2)
@@ -53,6 +60,7 @@ def test_queue_respects_max_pages() -> None:
     assert r3 is False
 
 
+# [F-NONE]
 def test_queue_pop_returns_enqueued_items() -> None:
     async def go() -> list[tuple[str, int, str | None]]:
         q = CrawlQueue(max_pages=10)
@@ -69,6 +77,7 @@ def test_queue_pop_returns_enqueued_items() -> None:
     assert items[1] == ("https://ex.com/2", 1, "https://ex.com/1")
 
 
+# [F-NONE]
 def test_queue_visited_count_tracks_enqueues() -> None:
     async def go() -> int:
         q = CrawlQueue(max_pages=10)
@@ -80,6 +89,7 @@ def test_queue_visited_count_tracks_enqueues() -> None:
     assert asyncio.run(go()) == 2
 
 
+# [F-NONE]
 def test_queue_mark_done_tracks_in_flight() -> None:
     async def go() -> tuple[bool, bool, bool]:
         q = CrawlQueue(max_pages=10)

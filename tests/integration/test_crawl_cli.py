@@ -23,6 +23,7 @@ def _run(
     )
 
 
+# [F-REQ-023]
 def test_crawl_cli_writes_manifest(fixture_server: str, tmp_path: Path) -> None:
     out_root = tmp_path / "run"
     result = _run(
@@ -47,11 +48,13 @@ def test_crawl_cli_writes_manifest(fixture_server: str, tmp_path: Path) -> None:
     assert data["summary"]["pages_crawled"] >= 1
 
 
+# [F-NONE]
 def test_crawl_cli_malformed_seed_exits_3(tmp_path: Path) -> None:
     result = _run("crawl", "not-a-url", "--out", str(tmp_path / "run"))
     assert result.returncode == 3
 
 
+# [F-NONE]
 def test_crawl_cli_auto_out_falls_back_to_webscraper_home(
     fixture_server: str, tmp_path: Path
 ) -> None:

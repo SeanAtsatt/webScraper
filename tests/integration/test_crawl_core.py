@@ -6,6 +6,7 @@ from pathlib import Path
 from webscraper.crawl import CrawlOptions, run_crawl
 
 
+# [F-REQ-023]
 def test_run_crawl_writes_manifest_and_per_page_files(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",
@@ -27,6 +28,7 @@ def test_run_crawl_writes_manifest_and_per_page_files(fixture_server: str, tmp_p
     assert len(json_files) >= 3
 
 
+# [F-REQ-024]
 def test_run_crawl_respects_max_depth(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",
@@ -41,6 +43,7 @@ def test_run_crawl_respects_max_depth(fixture_server: str, tmp_path: Path) -> No
     assert manifest["summary"]["pages_crawled"] == 1
 
 
+# [F-REQ-025]
 def test_run_crawl_respects_max_pages(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",
@@ -56,6 +59,7 @@ def test_run_crawl_respects_max_pages(fixture_server: str, tmp_path: Path) -> No
     assert total <= 2
 
 
+# [F-REQ-027]
 def test_crawl_respects_exclude_pattern(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",
@@ -72,6 +76,7 @@ def test_crawl_respects_exclude_pattern(fixture_server: str, tmp_path: Path) -> 
     assert not any("/admin/" in u for u in urls)
 
 
+# [F-REQ-028]
 def test_crawl_robots_blocks_admin_by_default(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",
@@ -87,6 +92,7 @@ def test_crawl_robots_blocks_admin_by_default(fixture_server: str, tmp_path: Pat
     assert any("/admin/" in p["url"] for p in blocked)
 
 
+# [F-REQ-028]
 def test_crawl_no_robots_flag_allows_disallowed_paths(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",
@@ -103,6 +109,7 @@ def test_crawl_no_robots_flag_allows_disallowed_paths(fixture_server: str, tmp_p
     assert any("/admin/secret" in u for u in urls)
 
 
+# [F-REQ-029]
 def test_crawl_self_loop_deduped(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/loop",
@@ -117,6 +124,7 @@ def test_crawl_self_loop_deduped(fixture_server: str, tmp_path: Path) -> None:
     assert manifest["summary"]["pages_crawled"] == 1
 
 
+# [F-REQ-026]
 def test_crawl_out_of_scope_links_recorded_not_crawled(fixture_server: str, tmp_path: Path) -> None:
     opts = CrawlOptions(
         seed=f"{fixture_server}/crawl/",

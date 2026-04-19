@@ -22,6 +22,7 @@ def _opts_dict() -> dict[str, Any]:
     }
 
 
+# [F-REQ-023]
 def test_manifest_records_pages_and_flushes(tmp_path: Path) -> None:
     async def go() -> Path:
         m = Manifest(root=tmp_path, seed="https://ex.com/", opts=_opts_dict())
@@ -57,6 +58,7 @@ def test_manifest_records_pages_and_flushes(tmp_path: Path) -> None:
     assert len(data["pages"]) == 2
 
 
+# [F-REQ-026]
 def test_manifest_summary_counts_out_of_scope_and_robots_blocked(tmp_path: Path) -> None:
     async def go() -> dict[str, Any]:
         m = Manifest(root=tmp_path, seed="https://ex.com/", opts=_opts_dict())
@@ -74,6 +76,7 @@ def test_manifest_summary_counts_out_of_scope_and_robots_blocked(tmp_path: Path)
     assert data["summary"]["pages_robots_blocked"] == 1
 
 
+# [F-NONE]
 def test_manifest_atomic_flush_creates_no_partial(tmp_path: Path) -> None:
     """Flush writes to a tmp file and renames; interrupted flush must not leave a partial."""
 
