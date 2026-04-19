@@ -222,7 +222,7 @@ async def _worker(
         # Enqueue discovered links under depth cap
         if depth < opts.max_depth:
             for link in envelope.links:
-                if link.kind in ("content", "nav"):
+                if link.kind in ("content", "nav", "external"):
                     await queue.enqueue(link.href, depth + 1, url)
 
         queue.mark_done()

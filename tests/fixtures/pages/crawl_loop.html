@@ -3,6 +3,8 @@
 <body>
   <h1>Crawl Loop</h1>
   <p>This page links back to itself to exercise dedup. Enough prose that the
-  dispatcher accepts the page body without escalating.</p>
+  dispatcher accepts the page body without escalating to the browser tier.
+  The dedup logic in the crawl queue ensures that once a URL is visited it
+  will not be re-enqueued even when re-discovered via a self-referential link.</p>
   <p><a href="/crawl/loop">Self</a></p>
 </body></html>
