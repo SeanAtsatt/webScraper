@@ -79,6 +79,8 @@ All executable scripts must be registered in the allowlist. Unregistered executa
 - `global-templates/hooks/session-start.sh` - SessionStart context loading
 - `global-templates/hooks/user-prompt-submit.sh` - UserPromptSubmit hook
 - `global-templates/hooks/pre-commit` - Git pre-commit secret detection hook
+- `scripts/install-mcp.sh` - Interactive MCP server installer (macOS)
+- `tests/integration/test_installer.sh` - Installer dry-run smoke test
 
 **Adding New Scripts:**
 1. Create script in `scripts/` or appropriate location
