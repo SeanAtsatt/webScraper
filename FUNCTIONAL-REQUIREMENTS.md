@@ -60,3 +60,13 @@
 | F-REQ-037 | images | `--image-max-size` skips oversize images with `error="too_large"` | response |
 | F-REQ-038 | images | Image fetch failures (404, timeout, non-image CT) skip-and-record by default | response |
 | F-REQ-039 | images | Crawl manifest's `images_summary` counts match envelope records | response |
+| F-REQ-040 | mcp | `scrape_page` tool returns summary + file_path for a static page | response |
+| F-REQ-041 | mcp | `crawl_site` tool returns manifest_path + summary | response |
+| F-REQ-042 | mcp | `log_in_to_site` wraps `login --wait-for=close` and saves storage state | response |
+| F-REQ-043 | mcp | `list_saved_logins` and `forget_saved_login` reflect storage changes | response |
+| F-REQ-044 | mcp | `download_images_from_page` returns image file list + counts | response |
+| F-REQ-045 | mcp | `check_environment` maps `doctor` output to structured MCP response | response |
+| F-REQ-046 | mcp | Auth-required scrape returns `status: "auth_required"` with `suggested_next` | response |
+| F-REQ-047 | mcp | Bot-protection page returns `status: "bot_protection"` (not a raw exception) | response |
+| F-REQ-048 | mcp | Server instructions include the tool map, conversation pattern, auth flow, safety rules | response |
+| F-REQ-049 | mcp | Installer is idempotent: second `--dry-run --yes` makes no additional changes | response |
