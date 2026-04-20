@@ -233,6 +233,20 @@ Images land in `<out>/images/` with content-addressed filenames like `a3f2b1c9d4
 
 Errors (404, oversize, non-image Content-Type, timeouts) populate `images[].error` and don't stop the rest of the run. Image downloads use HTTP directly and do **not** use saved auth state — images gated behind per-domain auth will 403. This is a documented v0.2.1 limitation; revisit in a later version if needed.
 
+## Talking to Claude about scraping (v0.4 MCP server)
+
+If you want a non-coder to use this tool, install the MCP server and let them chat with Claude Desktop:
+
+1. Download the code as a ZIP from GitHub (Code → Download ZIP)
+2. Extract it and open Terminal in the folder
+3. Run `./scripts/install-mcp.sh` and answer the prompts
+4. Install Claude Desktop from https://claude.ai/download if prompted
+5. Re-launch Claude Desktop
+
+The end user can now ask Claude things like *"pull the contacts off this page"* or *"crawl this docs site and find anything about authentication"* and Claude will drive the scraper behind the scenes.
+
+See `docs/non-coder-getting-started.md` for an end-user cheat sheet and `docs/installer-guide.md` for the technical helper's checklist.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -310,7 +324,7 @@ All tests run offline against a local fixture server — no live network.
 | v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
 | v0.2.1 | `--download-images` flag with dedup, role filter, size cap, error policy | Shipped |
 | v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Not started |
-| v0.4 (optional) | MCP server wrapper | Deferred |
+| v0.4 | MCP server wrapper for Claude Desktop + interactive macOS installer | Shipped |
 
 ## License
 

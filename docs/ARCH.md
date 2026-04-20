@@ -343,6 +343,18 @@ counters are accumulated into the manifest's summary block.
 - [x] Incremental delivery + rollback (§10)
 - [x] ADR summary written — `docs/ADR/ADR-001-tiered-fetcher.md`
 
+## 13. MCP server (v0.4+)
+
+`webscraper/mcp_server/` provides a stdio MCP server (`webscraper-mcp` console script)
+that wraps the existing CLI as 7 tools for Claude Desktop. Tool handlers shell out to
+the CLI via `subprocess.run`, parse the resulting envelope or manifest, translate
+errors with `errors.classify_cli_result`, and return compact structured responses. A
+server-level instruction block (`instructions.INSTRUCTIONS`) guides Claude through
+non-coder conversations — the UX is delivered through the instruction text, not
+specialized tool names.
+
+Setup lives in `scripts/install-mcp.sh` and is macOS-only in v0.4.
+
 ---
 
 *See `docs/PRD.md` for product requirements; `docs/TEST-STRATEGY.md` for cross-cutting testing approach; `Architecture_Guardrails.md` for the design principles this document follows.*

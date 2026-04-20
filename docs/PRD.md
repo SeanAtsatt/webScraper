@@ -75,7 +75,17 @@ This project builds that tool.
 ### In Scope (Roadmap — later versions)
 
 - **v0.3**: Tier 3 backend (Firecrawl API); tier-3 escalation on persistent Tier-2 failure
-- **v0.4 (optional)**: MCP server wrapper around the CLI, if invocation friction proves real in day-to-day use
+- **v0.4**: Claude Desktop MCP server with 7 tools + non-coder-oriented server instructions + interactive macOS installer
+
+### In Scope (v0.4)
+
+- `webscraper-mcp` stdio MCP server for Claude Desktop
+- 7 tools: scrape_page, crawl_site, log_in_to_site, list_saved_logins,
+  forget_saved_login, download_images_from_page, check_environment
+- Server instruction block guiding Claude through non-coder conversations
+- `login --wait-for=close` variant used by the MCP login tool
+- Structured error translation
+- Interactive macOS installer for a blank machine
 
 ### Out of Scope (explicitly excluded)
 
@@ -229,7 +239,7 @@ Final dependency set captured in `pyproject.toml` at implementation time.
 | v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
 | v0.2.1 | `--download-images` flag with dedup, role filter, size cap, error policy | Shipped |
 | v0.3 | Tier 3 (Firecrawl) with escalation from Tier 2 | Not Started |
-| v0.4 (optional) | MCP server wrapper | Deferred |
+| v0.4 | MCP server for Claude Desktop | Shipped |
 
 ## Risks & Mitigations
 
@@ -285,6 +295,16 @@ These will be inserted into `FUNCTIONAL-REQUIREMENTS.md` when implementation beg
 | F-REQ-037 | images | `--image-max-size` skips oversize images with `error="too_large"` | response |
 | F-REQ-038 | images | Image fetch failures (404, timeout, non-image CT) skip-and-record by default | response |
 | F-REQ-039 | images | Crawl manifest's `images_summary` counts match envelope records | response |
+| F-REQ-040 | mcp | `scrape_page` tool returns a compact structured response from the envelope | response |
+| F-REQ-041 | mcp | `crawl_site` tool returns manifest summary and per-page count | response |
+| F-REQ-042 | mcp | `log_in_to_site` tool opens a visible browser and saves the session on close | response |
+| F-REQ-043 | mcp | `list_saved_logins` tool lists domains with cookie counts and expiry | response |
+| F-REQ-044 | mcp | `forget_saved_login` tool deletes the named domain session | response |
+| F-REQ-045 | mcp | `download_images_from_page` tool writes images and returns the output directory | response |
+| F-REQ-046 | mcp | `check_environment` tool returns pass/fail for each doctor check | response |
+| F-REQ-047 | mcp | MCP server exits non-zero with a structured error when the CLI exits non-zero | response |
+| F-REQ-048 | mcp | Server instruction block is present and non-empty in server metadata | payload |
+| F-REQ-049 | mcp | `install-mcp.sh` is idempotent and reports success on a second run | response |
 
 ---
 

@@ -36,6 +36,8 @@ uv run webscraper crawl <seed-url>
 
 **For image-heavy pages:** add `--download-images` to `fetch` or `crawl` to capture bytes (not just URLs). Images land in `<out>/images/` and get back-linked via `images[].local_path` on each envelope.
 
+**Non-technical users:** if someone else will be using this via Claude Desktop, install the MCP server by running `./scripts/install-mcp.sh` from a Downloaded-ZIP copy of the repo. Then the end user can open Claude Desktop and ask for scraping work in plain language.
+
 **Fallback.** Until v0.1 ships, `webscraper` does not exist on disk — in that case, use `WebFetch` and note the limitation.
 
 ## Common Commands
