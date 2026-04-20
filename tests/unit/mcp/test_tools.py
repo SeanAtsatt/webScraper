@@ -200,3 +200,36 @@ def test_crawl_site_returns_manifest_path_and_summary(tmp_path: Path) -> None:
     assert res["status"] == "ok"
     assert res["file_path"] == str(run_dir / "manifest.json")
     assert res["key_data"]["pages_crawled"] == 10
+
+
+def test_log_in_to_site_reports_success() -> None:
+    from webscraper.mcp_server.tools import log_in_to_site
+
+    stderr = (
+        "Opening browser for ex.com (visible; close manually if needed).\n"
+        "Log in, handle MFA, then close the browser window to save.\n"
+        "Saved ex.com (5 cookies) → /home/u/.webscraper/auth/ex.com.json\n"
+    )
+    with patch(
+        "webscraper.mcp_server.tools.subprocess.run", return_value=_FakeProc(0, stderr=stderr)
+    ):
+        res = log_in_to_site(url="https://ex.com/")
+    assert res["status"] == "ok"
+    assert res["key_data"]["domain"] == "ex.com"
+    assert res["key_data"]["cookies_count"] == 5
+
+
+def test_log_in_to_site_browser_closed_empty() -> None:
+    from webscraper.mcp_server.tools import log_in_to_site
+
+    stderr = (
+        "Opening browser for ex.com ...\n"
+        "warning: no cookies captured; saving state anyway\n"
+        "Saved ex.com (0 cookies) → /home/u/.webscraper/auth/ex.com.json\n"
+    )
+    with patch(
+        "webscraper.mcp_server.tools.subprocess.run", return_value=_FakeProc(0, stderr=stderr)
+    ):
+        res = log_in_to_site(url="https://ex.com/")
+    assert res["status"] == "browser_closed_empty"
+    assert res["key_data"]["cookies_count"] == 0

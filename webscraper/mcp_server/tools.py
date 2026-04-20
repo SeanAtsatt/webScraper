@@ -238,6 +238,46 @@ def crawl_site(
     }
 
 
+_LOGIN_SAVED_RE = re.compile(r"^Saved (?P<domain>\S+) \((?P<n>\d+) cookies\) → (?P<path>.+)$")
+
+
+def log_in_to_site(*, url: str) -> dict[str, Any]:
+    proc = _run("login", url, "--wait-for=close", timeout=900)
+    classification = classify_cli_result(
+        returncode=proc.returncode,
+        stdout=proc.stdout,
+        stderr=proc.stderr,
+    )
+    if classification["status"] != "ok":
+        return {**classification, "key_data": {}}
+
+    domain = ""
+    cookies_count = 0
+    for line in proc.stderr.splitlines():
+        m = _LOGIN_SAVED_RE.match(line.strip())
+        if m:
+            domain = m.group("domain")
+            cookies_count = int(m.group("n"))
+            break
+
+    if cookies_count == 0:
+        return {
+            "status": "browser_closed_empty",
+            "summary": "You closed the browser before signing in; no session was saved.",
+            "key_data": {"domain": domain, "cookies_count": 0},
+            "suggested_next": "log_in_to_site",
+            "details": {"stderr": proc.stderr.strip()},
+        }
+
+    return {
+        "status": "ok",
+        "summary": f"Signed in to {domain} — saved {cookies_count} cookies.",
+        "key_data": {"domain": domain, "cookies_count": cookies_count},
+        "suggested_next": None,
+        "details": {},
+    }
+
+
 def download_images_from_page(
     *,
     url: str,
