@@ -154,3 +154,28 @@ def test_meta_auth_used_accepts_domain_string() -> None:
         auth_used="connectance.org",
     )
     assert meta.auth_used == "connectance.org"
+
+
+# [F-NONE]
+def test_image_spec_local_path_defaults_to_empty() -> None:
+    img = ImageSpec(url="https://ex.com/a.jpg")
+    assert img.local_path == ""
+
+
+# [F-NONE]
+def test_image_spec_error_defaults_to_empty() -> None:
+    img = ImageSpec(url="https://ex.com/a.jpg")
+    assert img.error == ""
+
+
+# [F-NONE]
+def test_image_spec_accepts_local_path_and_error() -> None:
+    img = ImageSpec(
+        url="https://ex.com/a.jpg",
+        local_path="images/abc123-a.jpg",
+        error="",
+    )
+    assert img.local_path == "images/abc123-a.jpg"
+
+    err_img = ImageSpec(url="https://ex.com/b.jpg", error="http_404")
+    assert err_img.error == "http_404"

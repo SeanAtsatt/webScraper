@@ -68,6 +68,8 @@ class ImageSpec(BaseModel):
     width: int = 0
     height: int = 0
     role: ImageRole = "inline"
+    local_path: str = ""
+    error: str = ""
 
 
 class LinkSpec(BaseModel):
