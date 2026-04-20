@@ -53,3 +53,10 @@
 | F-REQ-030 | crawl | Partial-failure exit code 5; successful pages still written | response |
 | F-REQ-031 | crawl | Manifest records `discovered_from` enabling link-graph reconstruction | response |
 | F-REQ-032 | crawl | Per-page auth inherited from saved `~/.webscraper/auth/<domain>.json` | response |
+| F-REQ-033 | images | `--download-images` downloads referenced images to `<out>/images/` | response |
+| F-REQ-034 | images | Envelope's `images[].local_path` reflects the downloaded file | response |
+| F-REQ-035 | images | Duplicate image URLs across pages in a crawl are downloaded once | response |
+| F-REQ-036 | images | `--image-roles` restricts which roles get downloaded | response |
+| F-REQ-037 | images | `--image-max-size` skips oversize images with `error="too_large"` | response |
+| F-REQ-038 | images | Image fetch failures (404, timeout, non-image CT) skip-and-record by default | response |
+| F-REQ-039 | images | Crawl manifest's `images_summary` counts match envelope records | response |
