@@ -91,6 +91,11 @@ def _parser() -> argparse.ArgumentParser:
     crawl.add_argument("--out", type=Path, default=None)
     crawl.add_argument("--auto-out", action="store_true")
     crawl.add_argument("--quiet", action="store_true")
+    crawl.add_argument("--download-images", action="store_true")
+    crawl.add_argument("--image-roles", default="hero,inline,icon,background")
+    crawl.add_argument("--image-max-size", type=int, default=50)
+    crawl.add_argument("--image-concurrency", type=int, default=4)
+    crawl.add_argument("--image-on-error", choices=["skip", "abort"], default="skip")
 
     return p
 
@@ -269,6 +274,7 @@ def _run_crawl(args: argparse.Namespace) -> int:
     from datetime import UTC, datetime
 
     from webscraper.crawl import CrawlOptions, run_crawl
+    from webscraper.envelope import ImageRole  # noqa: PLC0415
     from webscraper.out import resolve_crawl_root
 
     _validate_url(args.seed)
@@ -277,6 +283,10 @@ def _run_crawl(args: argparse.Namespace) -> int:
         output_root = args.out
     else:
         output_root = resolve_crawl_root(seed=args.seed, cwd=Path.cwd(), now=datetime.now(tz=UTC))
+
+    roles_frozen: frozenset[ImageRole] = frozenset(
+        r.strip() for r in args.image_roles.split(",") if r.strip()
+    )
 
     opts = CrawlOptions(
         seed=args.seed,
@@ -289,6 +299,11 @@ def _run_crawl(args: argparse.Namespace) -> int:
         exclude=tuple(args.exclude),
         respect_robots=not args.no_robots,
         forced_tier=args.tier,
+        download_images=args.download_images,
+        image_roles=roles_frozen,
+        image_max_bytes=args.image_max_size * 1024 * 1024,
+        image_concurrency=args.image_concurrency,
+        image_on_error=args.image_on_error,
     )
     result = run_crawl(opts)
     sys.stderr.write(f"manifest: {result.manifest_path}\n")

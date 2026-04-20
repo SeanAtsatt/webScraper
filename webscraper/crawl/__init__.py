@@ -7,13 +7,13 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from webscraper.crawl.manifest import Manifest, PageRecord
 from webscraper.crawl.queue import CrawlQueue, normalize_url
 from webscraper.crawl.robots import RobotsChecker
 from webscraper.crawl.scope import is_same_site, matches_path_globs
-from webscraper.envelope import TierName
+from webscraper.envelope import ImageRole, TierName
 from webscraper.errors import AllTiersFailedError, FetcherError
 from webscraper.fetch.base import Fetcher, FetchOptions
 from webscraper.fetch.browser import BrowserFetcher
@@ -43,6 +43,12 @@ class CrawlOptions:
     forced_tier: TierName | None = None
     min_content_chars: int = 200
     user_agent: str = "webscraper/0.2 (+https://example.invalid)"
+    # Image-download settings
+    download_images: bool = False
+    image_roles: frozenset[ImageRole] = frozenset({"hero", "inline", "icon", "background"})
+    image_max_bytes: int = 50 * 1024 * 1024
+    image_concurrency: int = 4
+    image_on_error: Literal["skip", "abort"] = "skip"
 
 
 @dataclass(frozen=True)
@@ -198,6 +204,35 @@ async def _worker(
             )
             queue.mark_done()
             continue
+
+        # Download images if requested
+        if opts.download_images:
+            from webscraper.images import ImageDownloadOptions, download_images  # noqa: PLC0415
+
+            images_dir = opts.output_root / "images"
+            dopts = ImageDownloadOptions(
+                target_dir=images_dir,
+                roles=opts.image_roles,
+                max_bytes=opts.image_max_bytes,
+                concurrency=opts.image_concurrency,
+                on_error=opts.image_on_error,
+            )
+            try:
+                dl_results = await download_images(envelope.images, dopts)
+            except Exception as exc:
+                _log.warning("image_download_error", extra={"url": url, "error": str(exc)})
+                dl_results = []
+
+            # Merge results into envelope
+            if dl_results:
+                new_imgs = [
+                    img.model_copy(update={"local_path": res.local_path, "error": res.error})
+                    for img, res in zip(envelope.images, dl_results, strict=True)
+                ]
+                envelope = envelope.model_copy(update={"images": new_imgs})
+
+            # Accumulate into manifest's running totals
+            await manifest.add_image_results(dl_results)
 
         # Write per-page envelope
         slug = slugify_for_url(url)

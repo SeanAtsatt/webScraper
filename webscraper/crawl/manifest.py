@@ -33,10 +33,25 @@ class Manifest:
         self._started_at = datetime.now(tz=UTC)
         self._pages: dict[str, PageRecord] = {}
         self._lock = asyncio.Lock()
+        self._images_downloaded = 0
+        self._images_failed = 0
+        self._images_total_bytes = 0
+        self._track_images = False
 
     async def record(self, page: PageRecord) -> None:
         async with self._lock:
             self._pages[page.url] = page
+
+    async def add_image_results(self, results: list[Any]) -> None:
+        """Accumulate image download counters (auto-enables image tracking)."""
+        self._track_images = True
+        async with self._lock:
+            for r in results:
+                if r.error:
+                    self._images_failed += 1
+                elif r.local_path:
+                    self._images_downloaded += 1
+                    self._images_total_bytes += r.bytes
 
     async def flush(self, *, finished_at: datetime) -> Path:
         self._root.mkdir(parents=True, exist_ok=True)
@@ -49,13 +64,17 @@ class Manifest:
 
     def _to_json_payload(self, finished_at: datetime) -> dict[str, Any]:
         pages = sorted(self._pages.values(), key=lambda p: (p.depth, p.url))
-        summary = {
+        summary: dict[str, Any] = {
             "pages_crawled": sum(1 for p in pages if p.status == "success"),
             "pages_failed": sum(1 for p in pages if p.status == "failed"),
             "pages_out_of_scope": sum(1 for p in pages if p.status == "out_of_scope"),
             "pages_robots_blocked": sum(1 for p in pages if p.status == "robots_blocked"),
             "total_ms": sum(p.elapsed_ms for p in pages),
         }
+        if self._track_images:
+            summary["images_downloaded"] = self._images_downloaded
+            summary["images_failed"] = self._images_failed
+            summary["images_total_bytes"] = self._images_total_bytes
         return {
             "seed": self._seed,
             "started_at": self._started_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
