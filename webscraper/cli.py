@@ -53,6 +53,15 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="resolve output path from CWD (ai_working/ or ~/.webscraper/out/)",
     )
+    fetch.add_argument("--download-images", action="store_true")
+    fetch.add_argument(
+        "--image-roles",
+        default="hero,inline,icon,background",
+        help="comma-separated subset of hero|inline|icon|background",
+    )
+    fetch.add_argument("--image-max-size", type=int, default=50, help="max MB per image")
+    fetch.add_argument("--image-concurrency", type=int, default=4)
+    fetch.add_argument("--image-on-error", choices=["skip", "abort"], default="skip")
 
     login = sub.add_parser("login", help="interactively log in and save storage state for a domain")
     login.add_argument("url")
@@ -124,8 +133,52 @@ def _run_fetch(args: argparse.Namespace) -> int:
         fetch_opts=FetchOptions(timeout_s=args.timeout),
     )
     envelope = dispatcher.run(args.url, opts)
+
+    if args.download_images:
+        if out_path is None:
+            raise UsageError(
+                "--download-images requires --out or --auto-out"
+                " to determine where to place the files"
+            )
+        envelope = _download_images_for_envelope(envelope, out_path, args)
+
     _emit(envelope, args, out_path)
     return EXIT_OK
+
+
+def _download_images_for_envelope(
+    envelope: FetchResult, out_path: Path, args: argparse.Namespace
+) -> FetchResult:
+    import asyncio  # noqa: PLC0415
+
+    from webscraper.envelope import ImageRole  # noqa: PLC0415
+    from webscraper.images import (  # noqa: PLC0415
+        AllImagesFailedError,
+        ImageDownloadOptions,
+        download_images,
+    )
+
+    roles_set: frozenset[ImageRole] = frozenset(
+        r.strip() for r in args.image_roles.split(",") if r.strip()
+    )
+    target_dir = out_path.parent / "images"
+    dopts = ImageDownloadOptions(
+        target_dir=target_dir,
+        roles=roles_set,
+        max_bytes=args.image_max_size * 1024 * 1024,
+        concurrency=args.image_concurrency,
+        on_error=args.image_on_error,
+    )
+    try:
+        results = asyncio.run(download_images(envelope.images, dopts))
+    except AllImagesFailedError as exc:
+        raise AllTiersFailedError(str(exc)) from exc
+
+    new_images = [
+        img.model_copy(update={"local_path": res.local_path, "error": res.error})
+        for img, res in zip(envelope.images, results, strict=True)
+    ]
+    return envelope.model_copy(update={"images": new_images})
 
 
 def _run_login(args: argparse.Namespace) -> int:
