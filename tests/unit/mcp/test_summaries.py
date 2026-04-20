@@ -38,12 +38,14 @@ def _envelope_json(
     }
 
 
+# [F-REQ-040]
 def test_summarize_envelope_text_mentions_title_and_tier() -> None:
     s = summarize_envelope(_envelope_json(title="My Article"))
     assert "My Article" in s["summary"]
     assert "fast" in s["summary"].lower()
 
 
+# [F-REQ-040]
 def test_summarize_envelope_extracts_emails_into_key_data() -> None:
     env = _envelope_json(text="Contact alice@example.com or bob@example.com.")
     s = summarize_envelope(env)
@@ -52,6 +54,7 @@ def test_summarize_envelope_extracts_emails_into_key_data() -> None:
     assert "bob@example.com" in emails
 
 
+# [F-REQ-040]
 def test_summarize_envelope_includes_table_headers_when_present() -> None:
     env = _envelope_json(tables=[{"headers": ["Name", "Email"], "rows": [["a", "a@x"]]}])
     s = summarize_envelope(env)
@@ -59,11 +62,13 @@ def test_summarize_envelope_includes_table_headers_when_present() -> None:
     assert s["key_data"]["tables"][0]["headers"] == ["Name", "Email"]
 
 
+# [F-REQ-040]
 def test_summarize_envelope_reports_auth_used() -> None:
     s = summarize_envelope(_envelope_json(auth_used="example.com"))
     assert "example.com" in s["summary"]
 
 
+# [F-REQ-041]
 def test_summarize_manifest_aggregates_counts(tmp_path: Path) -> None:
     manifest = {
         "seed": "https://ex.com/",

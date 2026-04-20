@@ -21,6 +21,7 @@ class _FakeProc:
         self.stderr = stderr
 
 
+# [F-REQ-043]
 def test_list_saved_logins_parses_stdout() -> None:
     fake_out = (
         "connectance.org                  14 cookies   expires in 29d\n"
@@ -36,6 +37,7 @@ def test_list_saved_logins_parses_stdout() -> None:
     assert any(r["domain"] == "notion.so" for r in rows)
 
 
+# [F-REQ-043]
 def test_forget_saved_login_reports_deleted() -> None:
     with patch(
         "webscraper.mcp_server.tools.subprocess.run",
@@ -46,6 +48,7 @@ def test_forget_saved_login_reports_deleted() -> None:
     assert "ex.com" in res["summary"]
 
 
+# [F-REQ-045]
 def test_check_environment_reports_issues_when_exit_4() -> None:
     stdout = "[  OK] Python 3.11\n[FAIL] Playwright: not installed\n[  OK] auth dir\n"
     with patch(
@@ -56,6 +59,7 @@ def test_check_environment_reports_issues_when_exit_4() -> None:
     assert "Playwright" in " ".join(res["key_data"]["issues"])
 
 
+# [F-REQ-040]
 def test_scrape_page_returns_summary_and_file_path(tmp_path: Path) -> None:
     from webscraper.mcp_server.tools import scrape_page
 
@@ -97,6 +101,7 @@ def test_scrape_page_returns_summary_and_file_path(tmp_path: Path) -> None:
     assert "Ex" in res["summary"]
 
 
+# [F-REQ-044]
 def test_download_images_returns_files_list(tmp_path: Path) -> None:
     from webscraper.mcp_server.tools import download_images_from_page
 
@@ -158,6 +163,7 @@ def test_download_images_returns_files_list(tmp_path: Path) -> None:
     assert res["key_data"]["files"][0].endswith("abc123-a.jpg")
 
 
+# [F-REQ-041]
 def test_crawl_site_returns_manifest_path_and_summary(tmp_path: Path) -> None:
     from webscraper.mcp_server.tools import crawl_site
 
@@ -202,6 +208,7 @@ def test_crawl_site_returns_manifest_path_and_summary(tmp_path: Path) -> None:
     assert res["key_data"]["pages_crawled"] == 10
 
 
+# [F-REQ-042]
 def test_log_in_to_site_reports_success() -> None:
     from webscraper.mcp_server.tools import log_in_to_site
 
@@ -219,6 +226,7 @@ def test_log_in_to_site_reports_success() -> None:
     assert res["key_data"]["cookies_count"] == 5
 
 
+# [F-REQ-042]
 def test_log_in_to_site_browser_closed_empty() -> None:
     from webscraper.mcp_server.tools import log_in_to_site
 
