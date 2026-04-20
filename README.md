@@ -214,6 +214,25 @@ Flags:
 
 Exit codes: `0` all pages succeeded, `5` some pages failed (crawl completed), `2` crawl aborted, `3` usage error, `4` environment error.
 
+## Downloading images
+
+Pass `--download-images` to `fetch` or `crawl` to write each page's images to disk:
+
+    uv run webscraper fetch https://docs.example.com/post --auto-out --download-images
+    uv run webscraper crawl https://docs.example.com/ --download-images
+
+Images land in `<out>/images/` with content-addressed filenames like `a3f2b1c9d4e5-hero-2026.webp`. The envelope's `images[].local_path` points at each file. A crawl shares one `images/` directory across all pages, so a hero image referenced from 20 pages is downloaded once.
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--download-images` | off | Opt-in; requires `--out` or `--auto-out` |
+| `--image-roles` | `hero,inline,icon,background` | Which roles to download |
+| `--image-max-size MB` | 50 | Per-image size cap |
+| `--image-concurrency N` | 4 | Parallel downloads |
+| `--image-on-error skip\|abort` | skip | Behavior when an image fails |
+
+Errors (404, oversize, non-image Content-Type, timeouts) populate `images[].error` and don't stop the rest of the run. Image downloads use HTTP directly and do **not** use saved auth state — images gated behind per-domain auth will 403. This is a documented v0.2.1 limitation; revisit in a later version if needed.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -289,6 +308,7 @@ All tests run offline against a local fixture server — no live network.
 | v0.1 | `fetch`, `doctor`, Tiers 1–2, envelope, markdown + HTML renderers, Chrome-profile auth, E2E suite | Shipped |
 | v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Shipped |
 | v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
+| v0.2.1 | `--download-images` flag with dedup, role filter, size cap, error policy | Shipped |
 | v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Not started |
 | v0.4 (optional) | MCP server wrapper | Deferred |
 

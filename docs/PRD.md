@@ -64,6 +64,14 @@ This project builds that tool.
 - Per-page auth inherited from `~/.webscraper/auth/<domain>.json`
 - New exit code 5 for "partial failure" (crawl completed but some pages failed)
 
+### In Scope (v0.2.1)
+
+- `--download-images` flag on `fetch` and `crawl`
+- Shared content-addressed `images/` dir per run (URL-hash dedup)
+- Role filter (`--image-roles`), size cap (`--image-max-size`), concurrency, error policy
+- Envelope fields `ImageSpec.local_path` and `ImageSpec.error` (backward-compat additive)
+- Crawl manifest gains `images_downloaded`, `images_failed`, `images_total_bytes`
+
 ### In Scope (Roadmap — later versions)
 
 - **v0.3**: Tier 3 backend (Firecrawl API); tier-3 escalation on persistent Tier-2 failure
@@ -219,6 +227,7 @@ Final dependency set captured in `pyproject.toml` at implementation time.
 | v0.1 MVP | `fetch` subcommand, Tiers 1–2, auto-escalation, envelope, markdown/html renderers, Chrome-profile auth, E2E fixture suite | Not Started |
 | v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Not Started |
 | v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
+| v0.2.1 | `--download-images` flag with dedup, role filter, size cap, error policy | Shipped |
 | v0.3 | Tier 3 (Firecrawl) with escalation from Tier 2 | Not Started |
 | v0.4 (optional) | MCP server wrapper | Deferred |
 
@@ -269,6 +278,13 @@ These will be inserted into `FUNCTIONAL-REQUIREMENTS.md` when implementation beg
 | F-REQ-030 | crawl | Partial-failure exit code 5; successful pages still written | response |
 | F-REQ-031 | crawl | Manifest records `discovered_from` enabling link-graph reconstruction | response |
 | F-REQ-032 | crawl | Per-page auth inherited from saved `~/.webscraper/auth/<domain>.json` | response |
+| F-REQ-033 | images | `--download-images` downloads referenced images to `<out>/images/` | response |
+| F-REQ-034 | images | Envelope's `images[].local_path` reflects the downloaded file | response |
+| F-REQ-035 | images | Duplicate image URLs across pages in a crawl are downloaded once | response |
+| F-REQ-036 | images | `--image-roles` restricts which roles get downloaded | response |
+| F-REQ-037 | images | `--image-max-size` skips oversize images with `error="too_large"` | response |
+| F-REQ-038 | images | Image fetch failures (404, timeout, non-image CT) skip-and-record by default | response |
+| F-REQ-039 | images | Crawl manifest's `images_summary` counts match envelope records | response |
 
 ---
 

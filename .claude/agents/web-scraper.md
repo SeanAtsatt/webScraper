@@ -36,6 +36,7 @@ You are a web-scraping specialist for the **webScraper** project. Your job: take
 | `--max-depth N` | Cap crawl depth when the site is sprawling |
 | `--include /docs/**` | Focus a crawl to a subset of paths |
 | `--exclude /archive/**` | Skip irrelevant sections during crawl |
+| `--download-images` | The user wants the image bytes on disk, not just URLs |
 
 ## How to work
 

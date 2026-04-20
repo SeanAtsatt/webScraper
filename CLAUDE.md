@@ -34,6 +34,8 @@ uv run webscraper crawl <seed-url>
 
 `crawl` handles dedup, depth bounding, robots.txt, politeness delays, and produces a `manifest.json` with a link graph via `discovered_from`. Only loop `fetch` yourself if you need AI-driven per-page decisions about what to follow next (rare).
 
+**For image-heavy pages:** add `--download-images` to `fetch` or `crawl` to capture bytes (not just URLs). Images land in `<out>/images/` and get back-linked via `images[].local_path` on each envelope.
+
 **Fallback.** Until v0.1 ships, `webscraper` does not exist on disk — in that case, use `WebFetch` and note the limitation.
 
 ## Common Commands

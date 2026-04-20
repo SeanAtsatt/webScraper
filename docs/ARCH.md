@@ -249,6 +249,12 @@ Each tier produces an unacceptable result (or raises). Dispatcher exhausts the c
 
 Per-page auth is inherited automatically because every page goes through the same `BrowserFetcher` used by `fetch`, which looks up storage state by registrable domain.
 
+Image downloads, when `--download-images` is on, are performed inside each worker
+immediately after the envelope is built, using `httpx.AsyncClient` (not Playwright).
+Files land in `<run-root>/images/` with names `<sha256[:12]>-<slug>.<ext>`, shared
+across all workers so cross-page duplicates are downloaded once. Per-run image
+counters are accumulated into the manifest's summary block.
+
 ## 7. Failure Modes (Top 10) + Mitigations
 
 | # | Failure Mode | Impact | Mitigation |
