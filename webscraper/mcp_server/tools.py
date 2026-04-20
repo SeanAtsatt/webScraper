@@ -114,7 +114,7 @@ def check_environment() -> dict[str, Any]:
 
 from datetime import UTC, datetime  # noqa: E402
 
-from webscraper.mcp_server.summaries import summarize_envelope  # noqa: E402
+from webscraper.mcp_server.summaries import summarize_envelope, summarize_manifest  # noqa: E402
 
 
 def _make_scrape_out_path(url: str) -> Path:
@@ -153,8 +153,7 @@ def scrape_page(*, url: str, render: str = "json") -> dict[str, Any]:
         return {
             "status": "auth_required",
             "summary": (
-                "That page redirected to a login screen. "
-                "Shall I open a browser so you can sign in?"
+                "That page redirected to a login screen. Shall I open a browser so you can sign in?"
             ),
             "file_path": str(out_path),
             "key_data": {"final_url": final_url},
@@ -173,6 +172,72 @@ def scrape_page(*, url: str, render: str = "json") -> dict[str, Any]:
     }
 
 
+def _make_crawl_out_root(seed: str) -> Path:
+    from webscraper.out import resolve_crawl_root
+
+    return resolve_crawl_root(seed=seed, cwd=Path.cwd(), now=datetime.now(tz=UTC))
+
+
+def crawl_site(
+    *,
+    seed: str,
+    max_pages: int = 50,
+    max_depth: int = 3,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+) -> dict[str, Any]:
+    out_root = _make_crawl_out_root(seed)
+    out_root.mkdir(parents=True, exist_ok=True)
+
+    args = [
+        "crawl",
+        seed,
+        "--out",
+        str(out_root),
+        "--max-pages",
+        str(max_pages),
+        "--max-depth",
+        str(max_depth),
+    ]
+    for p in include or []:
+        args += ["--include", p]
+    for p in exclude or []:
+        args += ["--exclude", p]
+
+    proc = _run(*args, timeout=600)
+    classification = classify_cli_result(
+        returncode=proc.returncode,
+        stdout=proc.stdout,
+        stderr=proc.stderr,
+    )
+    # Exit 5 is "partial failure" — still useful; treat as ok with a note.
+    if classification["status"] not in ("ok", "partial_ok"):
+        return {**classification, "file_path": None, "key_data": {}}
+
+    manifest_path = out_root / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {
+            "status": "empty_result",
+            "summary": "Crawl completed but no manifest was written.",
+            "file_path": None,
+            "key_data": {},
+            "suggested_next": None,
+            "details": {"stderr": proc.stderr},
+        }
+
+    synth = summarize_manifest(manifest)
+    return {
+        "status": classification["status"],
+        "summary": synth["summary"],
+        "file_path": str(manifest_path),
+        "key_data": synth["key_data"],
+        "suggested_next": None,
+        "details": {"opts": manifest.get("opts", {})},
+    }
+
+
 def download_images_from_page(
     *,
     url: str,
@@ -183,8 +248,13 @@ def download_images_from_page(
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     args = [
-        "fetch", url, "--out", str(out_path),
-        "--download-images", "--image-max-size", str(max_size_mb),
+        "fetch",
+        url,
+        "--out",
+        str(out_path),
+        "--download-images",
+        "--image-max-size",
+        str(max_size_mb),
     ]
     if roles and roles != ["all"]:
         args += ["--image-roles", ",".join(roles)]
