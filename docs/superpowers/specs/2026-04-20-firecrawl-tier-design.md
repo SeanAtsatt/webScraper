@@ -18,11 +18,14 @@ v0.3 adds a third tier, Firecrawl's `/scrape` API, which specializes in bypassin
 - New `webscraper/fetch/firecrawl.py` implementing the existing `Fetcher` Protocol
 - `FetchOptions` gains `allow_paid: bool` and `firecrawl_api_key: str | None`
 - Dispatcher: 3-tier chain; Tier 3 gated on `allow_paid`; auto-escalation to Tier 3 only on `challenge:*` rejection from Tier 2
-- CLI: `--allow-paid` on `fetch` and `crawl`; `--tier=firecrawl` implies `--allow-paid`; `WEBSCRAPER_FIRECRAWL_KEY` env var read at dispatcher boundary
+- CLI: `--allow-paid` on `fetch` and `crawl`; `--tier=firecrawl` implies `--allow-paid`
+- **Key storage:** `WEBSCRAPER_FIRECRAWL_KEY` env var takes precedence; fallback to `~/.webscraper/firecrawl.key` (chmod 600). Resolution happens once at dispatcher boundary via a small helper.
 - MCP tools `scrape_page` and `crawl_site` gain an optional `allow_paid: bool = false` param
 - MCP two-turn consent flow: bot-protection response returns `suggested_next: "retry_with_paid"`; Claude asks the user; second call passes `allow_paid=True`
-- Server-instructions addition covering the paid-consent pattern
-- `doctor` reports whether `WEBSCRAPER_FIRECRAWL_KEY` is set (never logs the value)
+- **New MCP tools** `set_firecrawl_key(key)` and `check_firecrawl_key()` so non-coders can configure the key conversationally without touching Terminal
+- Server-instructions addition covering the paid-consent pattern AND the two key-setup paths (chat vs. Terminal) with a privacy note
+- Installer grows an optional step that prompts for the key and writes the file
+- `doctor` reports whether a key is resolvable (checks both env + file) — never logs the value
 - Mock Firecrawl endpoint at `/firecrawl/v1/scrape` on the fixture server for deterministic tests
 - 5 new F-REQs (050–054)
 - A documented manual acceptance step in the plan using `https://www.g2.com/` (or similar known-Cloudflare-walled site) as the live-bot-protection target
@@ -141,7 +144,8 @@ sub.add_argument("--allow-paid", action="store_true",
                  help="allow the Firecrawl (paid) tier to be used on bot-protection")
 
 # In the handler:
-api_key = os.environ.get("WEBSCRAPER_FIRECRAWL_KEY")
+from webscraper.firecrawl_key import load_firecrawl_key
+api_key = load_firecrawl_key()   # env var first, then ~/.webscraper/firecrawl.key
 allow_paid = args.allow_paid or args.tier == "firecrawl"
 opts = DispatchOptions(
     ...,
@@ -156,6 +160,73 @@ dispatcher = Dispatcher([FastFetcher(), BrowserFetcher(), FirecrawlFetcher()])
 
 `--tier=firecrawl` sets `allow_paid` automatically; UsageError still fires if Firecrawl is chosen without any api key.
 
+### 4.4a Key resolution helper (`webscraper/firecrawl_key.py`)
+
+```python
+"""Firecrawl API key resolution and storage."""
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+_KEY_FILE_RELATIVE = "firecrawl.key"
+
+
+def _key_file_path() -> Path:
+    from webscraper.auth import _home as webscraper_home
+    return webscraper_home() / _KEY_FILE_RELATIVE
+
+
+def load_firecrawl_key() -> str | None:
+    """Resolve the Firecrawl API key.
+
+    Order:
+      1. WEBSCRAPER_FIRECRAWL_KEY env var (if set and non-empty)
+      2. ~/.webscraper/firecrawl.key (first non-blank line)
+      3. None
+    """
+    env = os.environ.get("WEBSCRAPER_FIRECRAWL_KEY")
+    if env and env.strip():
+        return env.strip()
+    path = _key_file_path()
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                return line
+    return None
+
+
+def save_firecrawl_key(key: str) -> Path:
+    """Persist the key to ~/.webscraper/firecrawl.key with chmod 600.
+
+    Returns the file path. Overwrites existing content.
+    """
+    key = key.strip()
+    if not key:
+        raise ValueError("empty key")
+    path = _key_file_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(key + "\n", encoding="utf-8")
+    os.chmod(tmp, 0o600)  # noqa: S103 — user-only readable secret
+    tmp.replace(path)
+    return path
+
+
+def key_present() -> bool:
+    return load_firecrawl_key() is not None
+
+
+def key_source() -> str:
+    """Return a human-readable description of where the key came from, or 'none'."""
+    if os.environ.get("WEBSCRAPER_FIRECRAWL_KEY", "").strip():
+        return "env var"
+    if _key_file_path().is_file():
+        return f"file {_key_file_path()}"
+    return "none"
+```
+
 ### 4.5 MCP tool updates
 
 ```python
@@ -169,16 +240,61 @@ def scrape_page(*, url: str, render: str = "json", allow_paid: bool = False) -> 
 
 def crawl_site(*, seed: str, ..., allow_paid: bool = False) -> dict:
     # Similarly appends --allow-paid to crawl args
+
+
+def set_firecrawl_key(*, key: str) -> dict:
+    """Save a Firecrawl API key to ~/.webscraper/firecrawl.key (chmod 600)."""
+    from webscraper.firecrawl_key import save_firecrawl_key
+    try:
+        path = save_firecrawl_key(key)
+    except ValueError:
+        return {"status": "bad_input",
+                "summary": "The key looks empty. Paste the full `fc-...` string.",
+                "key_data": {}, "suggested_next": None, "details": {}}
+    return {
+        "status": "ok",
+        "summary": f"Saved Firecrawl API key to {path}. You can now retry scrapes with the paid tier.",
+        "key_data": {"path": str(path)},
+        "suggested_next": None,
+        "details": {},
+    }
+
+
+def check_firecrawl_key() -> dict:
+    """Report whether a Firecrawl key is configured, without revealing it."""
+    from webscraper.firecrawl_key import key_present, key_source
+    present = key_present()
+    return {
+        "status": "ok",
+        "summary": (f"Firecrawl key configured via {key_source()}."
+                    if present else
+                    "No Firecrawl API key configured."),
+        "key_data": {"configured": present, "source": key_source()},
+        "suggested_next": None if present else "set_firecrawl_key",
+        "details": {},
+    }
 ```
 
-Tool JSON schema gains:
+Tool JSON schemas:
 
 ```python
+# scrape_page / crawl_site — add to properties
 "allow_paid": {
     "type": "boolean",
     "default": False,
     "description": "Allow the paid Firecrawl tier for bot-protected pages."
 }
+
+# set_firecrawl_key
+{
+  "type": "object",
+  "properties": {
+    "key": {"type": "string", "description": "Firecrawl API key, e.g. fc-xxxxxxxx."}
+  },
+  "required": ["key"],
+}
+
+# check_firecrawl_key — no input params
 ```
 
 **Error translator extension** in `errors.py`:
@@ -189,11 +305,19 @@ Tool JSON schema gains:
 #      if WITH allow_paid and still failed, leave suggested_next = None (nothing else to try)
 ```
 
-### 4.6 Server instructions — new paragraph
+### 4.6 Server instructions — new paragraphs
 
 Append to `webscraper/mcp_server/instructions.py`:
 
 > **Paid-tier consent (Firecrawl).** When a tool returns `status: "bot_protection"` with `suggested_next: "retry_with_paid"`, the site is blocking automated access and Tier 2 couldn't get through. There's a paid service (Firecrawl) that usually can. Don't retry silently. Tell the user plainly that the site is blocking automation and ask if they want to try the paid service. Give a rough cost signal (one page is typically around one cent). Only retry with `allow_paid=true` if they say yes. For a crawl that might hit many blocked pages, confirm the scale before enabling: *"this could cost up to $X if every page needs it."* Never leave `allow_paid=true` on a loop without re-checking with the user.
+>
+> **Firecrawl API key setup.** If a user wants to use the paid tier but hasn't configured a key (the tool returns `status: "setup_issue"` mentioning `firecrawl_api_key`, or `check_firecrawl_key` reports none configured), help them set one up. Offer two paths in this order:
+>
+> 1. **Fastest:** *"Paste your Firecrawl key here and I'll save it. One heads-up — your key will appear in this Claude Desktop conversation's history. For most people that's fine (Firecrawl keys are scoped to that one service), but if you prefer the key never touches the chat, use option 2."* Then call `set_firecrawl_key(key=<pasted>)`.
+>
+> 2. **Most private:** *"Open Terminal and run: `mkdir -p ~/.webscraper && echo YOUR_KEY > ~/.webscraper/firecrawl.key && chmod 600 ~/.webscraper/firecrawl.key`. I won't see the key at all."*
+>
+> After either path, call `check_firecrawl_key` to confirm it's configured, then ask the user if they want to retry their original scrape.
 
 ### 4.7 Envelope contract
 
@@ -204,15 +328,31 @@ Firecrawl credits used can go in `extra` on `FetcherResult` (already a free-form
 ### 4.8 Doctor update
 
 ```python
-def _check_firecrawl_env() -> tuple[str, bool]:
-    key = os.environ.get("WEBSCRAPER_FIRECRAWL_KEY")
-    if key:
-        return "WEBSCRAPER_FIRECRAWL_KEY: set (Firecrawl tier available)", True
-    return ("WEBSCRAPER_FIRECRAWL_KEY: not set "
-            "(Firecrawl tier unavailable; set this if you want --allow-paid to work)", True)
+def _check_firecrawl_key() -> tuple[str, bool]:
+    from webscraper.firecrawl_key import key_present, key_source
+    if key_present():
+        return f"Firecrawl key: configured via {key_source()}", True
+    return ("Firecrawl key: not configured "
+            "(set WEBSCRAPER_FIRECRAWL_KEY or put the key in ~/.webscraper/firecrawl.key "
+            "if you want --allow-paid to work)", True)
 ```
 
 Both states are `ok` — the key being absent is not an error, just information.
+
+### 4.8a Installer update
+
+`scripts/install-mcp.sh` gains one optional step between the MCP-config write and the sanity check:
+
+```
+[optional] Firecrawl API key
+  Do you have a Firecrawl API key? (Needed for scraping bot-protected sites.)
+  Paste it now, or just press Enter to skip. You can set it up later by:
+    - creating ~/.webscraper/firecrawl.key, or
+    - asking Claude to set it up conversationally.
+  Key (or Enter to skip): ...
+```
+
+If the user pastes a value, the installer calls `load_firecrawl_key` + `save_firecrawl_key` to verify round-trip and sets file mode to 0o600. `--yes` skips the prompt (no key written).
 
 ### 4.9 Mock Firecrawl endpoint on the fixture server
 
@@ -268,17 +408,19 @@ Integration tests construct a `FirecrawlFetcher(api_base=<fixture_server>/firecr
 
 ## 5. Testing
 
-### 5.1 Automated (F-REQ-050..054)
+### 5.1 Automated (F-REQ-050..056)
 
 | ID | Category | Requirement | Verification |
 |----|----------|-------------|--------------|
 | F-REQ-050 | firecrawl | Tier 3 auto-escalates when Tier 2 hits bot-protection and `--allow-paid` is set | response |
 | F-REQ-051 | firecrawl | Without `--allow-paid`, Tier 3 is not attempted even if Tier 2 fails with bot-protection | response |
-| F-REQ-052 | firecrawl | `--tier=firecrawl` without `WEBSCRAPER_FIRECRAWL_KEY` exits 3 | response |
-| F-REQ-053 | firecrawl | Missing `WEBSCRAPER_FIRECRAWL_KEY` when Tier 3 is requested exits 4 | response |
+| F-REQ-052 | firecrawl | `--tier=firecrawl` without any configured key exits 4 with a clear message | response |
+| F-REQ-053 | firecrawl | Missing key when Tier 3 is requested exits 4 | response |
 | F-REQ-054 | firecrawl | MCP `scrape_page` returns `suggested_next: "retry_with_paid"` on bot-protection | response |
+| F-REQ-055 | firecrawl | `load_firecrawl_key` resolves env var first, then `~/.webscraper/firecrawl.key` | response |
+| F-REQ-056 | firecrawl | MCP `set_firecrawl_key` writes the file with chmod 600; `check_firecrawl_key` reflects it | response |
 
-All five routed through the fixture server — the `/firecrawl/v1/scrape` mock — so no real Firecrawl credits are spent, no network dependency, deterministic behavior.
+All seven routed through the fixture server — the `/firecrawl/v1/scrape` mock — so no real Firecrawl credits are spent, no network dependency, deterministic behavior.
 
 ### 5.2 Manual live acceptance step (documented in the plan)
 
@@ -313,19 +455,30 @@ If `https://www.g2.com/` ever stops triggering Cloudflare, the release engineer 
 
 ## 6. Doc updates
 
-- **PRD**: promote v0.3 from "roadmap" to "In Scope (v0.3)"; move timeline row to Shipped; append F-REQ-050..054
-- **ARCH**: § 2 option matrix mentions Tier 3 as active; § 6 concurrency / timeouts gets a Tier 3 row
+- **PRD**: promote v0.3 from "roadmap" to "In Scope (v0.3)"; move timeline row to Shipped; append F-REQ-050..056
+- **ARCH**: § 2 option matrix mentions Tier 3 as active; § 6 concurrency / timeouts gets a Tier 3 row; new § on key-resolution helper
 - **ADR-003** (new): captures the "auto-escalate only on challenge reason" policy
-- **README**: new "Handling bot-protected sites" section; document `WEBSCRAPER_FIRECRAWL_KEY` env var; update roadmap row
+- **README**: new "Handling bot-protected sites" section with the **full setup walkthrough**:
+  - what Firecrawl is, when you need it, and why it's paid
+  - how to get a key (link to firecrawl.dev)
+  - three setup paths, in order of recommendation:
+    1. Run the installer and let it prompt for the key (simplest)
+    2. `echo YOUR_KEY > ~/.webscraper/firecrawl.key && chmod 600 ~/.webscraper/firecrawl.key` (manual file)
+    3. `export WEBSCRAPER_FIRECRAWL_KEY=...` in your shell profile (env var, wins if both are set)
+  - how to verify (`webscraper doctor` or in Claude: *"check if my Firecrawl key is set up"*)
+  - how to rotate / remove (`rm ~/.webscraper/firecrawl.key` or `unset WEBSCRAPER_FIRECRAWL_KEY`)
 - **CLAUDE.md** + `.claude/agents/web-scraper.md`: brief note about `--allow-paid` for bot-walled sites
-- **docs/non-coder-getting-started.md**: add a bullet explaining what the "paid service" prompt means when Claude asks about it
-- **docs/installer-guide.md**: optional env-var step — "if the user has a Firecrawl API key, add `WEBSCRAPER_FIRECRAWL_KEY` to Claude Desktop's MCP server env"
+- **docs/non-coder-getting-started.md**: add a bullet explaining what the "paid service" prompt means when Claude asks, plus a one-line pointer — *"don't have a key yet? just ask Claude: 'how do I set up the Firecrawl key?' and it'll walk you through it."*
+- **docs/installer-guide.md**: document the new optional installer step plus the recovery path if the user skipped it
 
 ## 7. Security
 
-- API key is read from `WEBSCRAPER_FIRECRAWL_KEY`. Never logged. Never written to disk by the tool. Never appears in envelopes or manifests.
+- API key sources, in resolution order: `WEBSCRAPER_FIRECRAWL_KEY` env var, then `~/.webscraper/firecrawl.key` (chmod 600).
+- When the tool writes the key file (via installer or `set_firecrawl_key` MCP tool), it uses `0o600` mode at write time and a tmp-then-rename pattern so the file is never readable with wider permissions mid-write.
+- The key is never logged. Never echoed to stdout. Never included in envelopes, manifests, or tool responses. `doctor` and `check_firecrawl_key` report only *whether* a key exists and its *source* (env var vs file), never the value itself.
 - The existing `RedactionFilter` covers `Authorization` headers, so any structured log that accidentally includes the Firecrawl auth header gets scrubbed.
-- No new outbound-network-destination expansions: Firecrawl adds one destination (`api.firecrawl.dev`). The installer does NOT prompt to install or configure the key; it's left to the user.
+- **Privacy caveat for the MCP `set_firecrawl_key` tool:** keys pasted into Claude Desktop appear in the conversation history stored by Anthropic. Server instructions explicitly disclose this and offer the Terminal alternative. Users who want the key to never touch Claude's servers can use the installer prompt or the manual file/env-var path.
+- No new outbound-network-destination expansions: Firecrawl adds one destination (`api.firecrawl.dev`).
 
 ## 8. Non-goals (explicit)
 
