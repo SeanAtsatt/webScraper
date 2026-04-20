@@ -18,6 +18,7 @@ def _run(*args: str, env_extra: dict[str, str] | None = None) -> subprocess.Comp
     )
 
 
+# [F-REQ-033]
 def test_fetch_download_images_populates_local_path(fixture_server: str, tmp_path: Path) -> None:
     out = tmp_path / "result.json"
     result = _run(
@@ -43,6 +44,7 @@ def test_fetch_download_images_populates_local_path(fixture_server: str, tmp_pat
     assert len(list(images_dir.iterdir())) >= 3
 
 
+# [F-NONE]
 def test_fetch_download_images_requires_out_or_auto_out(
     fixture_server: str,
 ) -> None:
@@ -56,6 +58,7 @@ def test_fetch_download_images_requires_out_or_auto_out(
     assert "requires --out" in result.stderr or "requires --auto-out" in result.stderr
 
 
+# [F-REQ-036]
 def test_fetch_download_images_role_filter(fixture_server: str, tmp_path: Path) -> None:
     out = tmp_path / "result.json"
     result = _run(

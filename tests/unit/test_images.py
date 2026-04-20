@@ -17,6 +17,7 @@ def _img(url: str, role: str = "inline") -> ImageSpec:
     return ImageSpec(url=url, role=role)  # type: ignore[arg-type]
 
 
+# [F-REQ-036]
 def test_downloads_single_image_with_role_filter(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(
         target_dir=tmp_path / "images",
@@ -30,6 +31,7 @@ def test_downloads_single_image_with_role_filter(fixture_server: str, tmp_path: 
     assert (tmp_path / "images" / Path(results[0].local_path).name).exists()
 
 
+# [F-REQ-036]
 def test_role_filter_skips_non_matching(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(
         target_dir=tmp_path / "images",
@@ -46,6 +48,7 @@ def test_role_filter_skips_non_matching(fixture_server: str, tmp_path: Path) -> 
     assert results[1].error == ""  # skip != error
 
 
+# [F-REQ-035]
 def test_dedup_same_url_single_download(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(target_dir=tmp_path / "images")
     images = [
@@ -60,6 +63,7 @@ def test_dedup_same_url_single_download(fixture_server: str, tmp_path: Path) -> 
     assert len(files) == 1
 
 
+# [F-REQ-038]
 def test_http_404_skips_and_records_error(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(target_dir=tmp_path / "images")
     images = [_img(f"{fixture_server}/img/missing.png", role="inline")]
@@ -68,6 +72,7 @@ def test_http_404_skips_and_records_error(fixture_server: str, tmp_path: Path) -
     assert results[0].local_path == ""
 
 
+# [F-REQ-037]
 def test_too_large_rejected(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(
         target_dir=tmp_path / "images",
@@ -81,6 +86,7 @@ def test_too_large_rejected(fixture_server: str, tmp_path: Path) -> None:
     assert list((tmp_path / "images").iterdir()) == [] if (tmp_path / "images").exists() else True
 
 
+# [F-REQ-038]
 def test_non_image_content_type_rejected(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(target_dir=tmp_path / "images")
     images = [_img(f"{fixture_server}/img/not-image.png", role="inline")]
@@ -89,6 +95,7 @@ def test_non_image_content_type_rejected(fixture_server: str, tmp_path: Path) ->
     assert results[0].local_path == ""
 
 
+# [F-REQ-033]
 def test_filename_is_hash_prefix_plus_slug_plus_ext(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(target_dir=tmp_path / "images")
     images = [_img(f"{fixture_server}/img/hero.jpg", role="hero")]
@@ -98,6 +105,7 @@ def test_filename_is_hash_prefix_plus_slug_plus_ext(fixture_server: str, tmp_pat
     assert name.endswith(".jpg") or name.endswith(".png")  # ext preserved (or mapped from CT)
 
 
+# [F-REQ-035]
 def test_existing_file_not_redownloaded(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(target_dir=tmp_path / "images")
     images = [_img(f"{fixture_server}/img/hero.jpg", role="hero")]
@@ -115,6 +123,7 @@ def test_existing_file_not_redownloaded(fixture_server: str, tmp_path: Path) -> 
     assert r2[0].local_path == r1[0].local_path
 
 
+# [F-REQ-038]
 def test_abort_on_error_raises(fixture_server: str, tmp_path: Path) -> None:
     opts = ImageDownloadOptions(
         target_dir=tmp_path / "images",

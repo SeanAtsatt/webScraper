@@ -17,6 +17,7 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+# [F-REQ-035]
 def test_crawl_download_images_writes_shared_dir(fixture_server: str, tmp_path: Path) -> None:
     """Crawl two pages that both reference the same hero image; expect one file, two local_paths."""
     out = tmp_path / "run"
@@ -45,6 +46,7 @@ def test_crawl_download_images_writes_shared_dir(fixture_server: str, tmp_path: 
     assert summary.get("images_failed", 0) >= 2  # missing + not-image fail
 
 
+# [F-REQ-039]
 def test_crawl_download_images_disabled_omits_summary(fixture_server: str, tmp_path: Path) -> None:
     out = tmp_path / "run"
     result = _run(
