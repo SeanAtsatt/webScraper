@@ -114,6 +114,21 @@ def create_app() -> FastAPI:
     def robots_txt() -> str:
         return read("robots.txt")
 
+    @app.get("/img/missing.png")
+    def missing_img() -> Response:
+        return Response("not found", status_code=404)
+
+    @app.get("/img/huge.png")
+    def huge_img() -> Response:
+        return Response(
+            b"\x89PNG\r\n\x1a\n" + b"\x00" * (60 * 1024 * 1024),
+            media_type="image/png",
+        )
+
+    @app.get("/img/not-image.png")
+    def not_image() -> Response:
+        return Response("<html>not an image</html>", media_type="text/html")
+
     @app.get("/img/{name}")
     def image_asset(name: str) -> Response:
         return Response(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64, media_type="image/png")

@@ -3,13 +3,16 @@
 <style>.bg { background-image: url('/img/bg.jpg'); width: 200px; height: 100px; }</style>
 </head>
 <body>
-  <p>This page tests image role classification. The large hero image should be
-  classified as a hero role due to its dimensions exceeding 900px in width.
-  The small icon image should be classified as an icon due to its 16x16 size.
-  The CSS background image in the div below should be classified as a background
-  role, and the inline prose image should be classified as inline.</p>
+  <h1>Images Fixture</h1>
+  <p>This fixture exercises image extraction and download. It includes images
+  of every role and three deliberate failure cases used by --download-images tests.
+  The hero image is large and classified by its dimensions. The icon is tiny.
+  The background image comes from a CSS rule. The inline image is embedded in prose.</p>
   <img src="/img/hero.jpg" alt="Hero" width="1200" height="630" />
   <p>Prose with inline image: <img src="/img/inline.png" alt="Inline" width="400" height="300" /></p>
   <img src="/img/icon.png" alt="" width="16" height="16" />
   <div class="bg"></div>
+  <img src="/img/missing.png" alt="Missing" width="100" height="100" />
+  <img src="/img/huge.png" alt="Huge" width="100" height="100" />
+  <img src="/img/not-image.png" alt="NotImage" width="100" height="100" />
 </body></html>
