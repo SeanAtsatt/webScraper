@@ -68,6 +68,14 @@ def _parser() -> argparse.ArgumentParser:
     login.add_argument(
         "--timeout", type=float, default=300.0, help="max seconds to wait for login (default 300)"
     )
+    login.add_argument(
+        "--wait-for",
+        choices=["enter", "close"],
+        default="enter",
+        help="how to know the user finished login: "
+        "'enter' waits for Enter on stdin (CLI); "
+        "'close' waits for the browser window to close (MCP use)",
+    )
 
     sub.add_parser("doctor", help="environment health check")
 
@@ -198,24 +206,49 @@ def _run_login(args: argparse.Namespace) -> int:
 
     headless = _os.environ.get("WEBSCRAPER_LOGIN_HEADLESS") == "1"
     sys.stderr.write(f"Opening browser for {domain} (visible; close manually if needed).\n")
-    sys.stderr.write("Log in, handle MFA, then press Enter here to save.\n")
+    if args.wait_for == "enter":
+        sys.stderr.write("Log in, handle MFA, then press Enter here to save.\n")
+    else:
+        sys.stderr.write("Log in, handle MFA, then close the browser window to save.\n")
     sys.stderr.flush()
 
+    state: dict[str, Any] = {}
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
+        ctx = browser.new_context()
         try:
-            ctx = browser.new_context()
-            try:
-                page = ctx.new_page()
-                page.goto(args.url, timeout=int(args.timeout * 1000))
-                # Block on stdin to let the user complete login:
+            page = ctx.new_page()
+            page.goto(args.url, timeout=int(args.timeout * 1000))
+            if args.wait_for == "enter":
                 with contextlib.suppress(EOFError):
                     input()
-                state: dict[str, Any] = dict(ctx.storage_state())
-            finally:
-                ctx.close()
+            else:  # close — wait for the user to close all windows
+                # In headless mode (tests) we can't rely on a human closing
+                # the window. Skip the wait; we've already navigated and
+                # captured whatever state the initial goto produced.
+                if not headless:
+                    import time as _time  # noqa: PLC0415
+
+                    browser_disconnected = [False]
+
+                    def _on_disconnected(_browser: Any) -> None:
+                        browser_disconnected[0] = True
+
+                    browser.on("disconnected", _on_disconnected)
+                    deadline = _time.monotonic() + args.timeout
+                    while not browser_disconnected[0] and _time.monotonic() < deadline:
+                        _time.sleep(0.5)
+            # Capture state BEFORE the context goes away (if it hasn't already)
+            try:
+                state = dict(ctx.storage_state())
+            except Exception:
+                # Context/browser closed first; state is empty.
+                state = {"cookies": [], "origins": []}
         finally:
-            browser.close()
+            with contextlib.suppress(Exception):
+                ctx.close()
+            with contextlib.suppress(Exception):
+                browser.close()
 
     if not state.get("cookies"):
         sys.stderr.write("warning: no cookies captured; saving state anyway\n")
