@@ -156,6 +156,42 @@ PYEOF
     fi
 }
 
+step_firecrawl_key() {
+    log "[6b/7] optional Firecrawl API key"
+    if [[ -f "$HOME/.webscraper/firecrawl.key" ]]; then
+        log "  Firecrawl key already on disk; skipping prompt"
+        return 0
+    fi
+    if [[ $YES -eq 1 ]]; then
+        log "  --yes: skipping Firecrawl prompt"
+        return 0
+    fi
+    cat <<'EOT'
+Optional: Firecrawl API key
+    A Firecrawl key unlocks the paid Tier 3 for bot-protected sites. If you
+    don't have one, just press Enter to skip — you can set it up later by
+    creating ~/.webscraper/firecrawl.key, or by asking Claude conversationally.
+EOT
+    read -r -s -p "  Paste key (or press Enter to skip): " key
+    echo
+    if [[ -z "$key" ]]; then
+        log "  skipped"
+        return 0
+    fi
+    run "mkdir -p \"$HOME/.webscraper\""
+    if [[ $DRY_RUN -eq 1 ]]; then
+        log "DRY: would write $HOME/.webscraper/firecrawl.key"
+    else
+        # Write via tmp+rename with chmod 600
+        tmp="$HOME/.webscraper/firecrawl.key.tmp"
+        printf '%s\n' "$key" > "$tmp"
+        chmod 600 "$tmp"
+        mv "$tmp" "$HOME/.webscraper/firecrawl.key"
+        log "  Firecrawl key saved to ~/.webscraper/firecrawl.key (chmod 600)"
+    fi
+}
+
+
 step_sanity() {
     log "[7/7] sanity-check via webscraper-mcp --check"
     run "cd \"$REPO\" && uv run webscraper-mcp --check" || log "  check returned non-zero; inspect output"
@@ -173,6 +209,7 @@ main() {
     step_playwright
     step_claude_desktop
     step_mcp_config
+    step_firecrawl_key
     step_sanity
     log "Done. Re-launch Claude Desktop to see the webscraper server."
     log "Full transcript: $LOG"
