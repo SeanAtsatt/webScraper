@@ -70,3 +70,10 @@
 | F-REQ-047 | mcp | Bot-protection page returns `status: "bot_protection"` (not a raw exception) | response |
 | F-REQ-048 | mcp | Server instructions include the tool map, conversation pattern, auth flow, safety rules | response |
 | F-REQ-049 | mcp | Installer is idempotent: second `--dry-run --yes` makes no additional changes | response |
+| F-REQ-050 | firecrawl | Firecrawl API key resolves from env var (WEBSCRAPER_FIRECRAWL_KEY) when present | response |
+| F-REQ-051 | firecrawl | Firecrawl API key resolves from `~/.webscraper/firecrawl.key` when env var absent | response |
+| F-REQ-052 | firecrawl | Env var takes precedence over file when both are present | response |
+| F-REQ-053 | firecrawl | Saved Firecrawl key file is `chmod 600` for security | response |
+| F-REQ-054 | firecrawl | Empty or whitespace-only keys are rejected | response |
+| F-REQ-055 | firecrawl | Key file supports comment lines (starting with `#`) and loads first non-comment line | response |
+| F-REQ-056 | firecrawl | Firecrawl Tier 3 fetch uses stored key and returns valid envelope on success | response |
