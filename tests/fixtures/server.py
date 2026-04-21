@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 
 _PAGES = Path(__file__).parent / "pages"
 
@@ -54,6 +54,56 @@ def create_app() -> FastAPI:
     @app.get("/links/mixed", response_class=HTMLResponse)
     def links() -> str:
         return read("links.html")
+
+    @app.post("/firecrawl/v1/scrape")
+    async def firecrawl_scrape(request: Request) -> JSONResponse:
+        auth = request.headers.get("authorization", "")
+        if not auth.startswith("Bearer "):
+            return JSONResponse({"error": "unauthorized"}, status_code=401)
+        payload = await request.json()
+        url = payload.get("url", "")
+
+        # Deterministic behavior keyed on URL pattern:
+        if "/force-402" in url:
+            return JSONResponse({"error": "payment required"}, status_code=402)
+        if "/force-429" in url:
+            return JSONResponse({"error": "rate limited"}, status_code=429)
+        if "/force-500" in url:
+            return JSONResponse({"error": "server error"}, status_code=500)
+        if "/force-empty" in url:
+            return JSONResponse(
+                {
+                    "success": True,
+                    "data": {"html": "", "markdown": "", "links": [], "metadata": {}},
+                }
+            )
+
+        # Happy path: return a pretend successful scrape
+        return JSONResponse(
+            {
+                "success": True,
+                "data": {
+                    "html": (
+                        f"<html><body><h1>Firecrawl: {url}</h1>"
+                        f"<p>Substantive content scraped by Firecrawl. "
+                        f"The lazy brown fox jumps over the fence while the "
+                        f"quick dog watches from the porch, unconcerned. Lorem "
+                        f"ipsum dolor sit amet, consectetur adipiscing elit.</p>"
+                        f"</body></html>"
+                    ),
+                    "markdown": (
+                        f"# Firecrawl: {url}\n\nSubstantive content scraped "
+                        f"by Firecrawl. Lorem ipsum dolor sit amet."
+                    ),
+                    "links": [{"href": "/link", "text": "A Link"}],
+                    "metadata": {
+                        "sourceURL": url,
+                        "statusCode": 200,
+                        "title": f"Firecrawl: {url}",
+                    },
+                },
+            }
+        )
 
     @app.get("/slow")
     def slow() -> PlainTextResponse:
