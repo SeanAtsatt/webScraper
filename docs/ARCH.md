@@ -41,7 +41,7 @@ Three candidate architectures were considered.
 │                                              │
 │  argparse → Dispatcher ─┬─► FastFetcher      │
 │                         ├─► BrowserFetcher   │
-│                         └─► (v0.3) Firecrawl │
+│                         └─► FirecrawlFetcher │
 │                                              │
 │           └─► Parser ─► Envelope (JSON)      │
 │                     └─► Renderer(md/html)    │
@@ -102,7 +102,7 @@ Three candidate architectures were considered.
                  │            │            │
        ┌─────────▼──┐  ┌──────▼───────┐  ┌─▼──────────────┐
        │ FastFetcher │  │ BrowserFetch │  │ FirecrawlFetch │
-       │  (httpx)    │  │  (Playwright)│  │  (v0.3)        │
+       │  (httpx)    │  │  (Playwright)│  │  (Firecrawl)   │
        └─────────┬──┘  └──────┬───────┘  └─┬──────────────┘
                  │            │            │
                  └────────────┴────────────┘
@@ -132,7 +132,7 @@ Three candidate architectures were considered.
 | `fetch.Dispatcher` | Tier selection, escalation rules, history | `Fetcher` implementations |
 | `fetch.FastFetcher` | HTTP(S) GET with retries, timeouts, status checks | `httpx` |
 | `fetch.BrowserFetcher` | Per-domain auth state load, Playwright context, page render wait | `playwright`, `auth` |
-| `fetch.FirecrawlFetcher` (v0.3) | Firecrawl API call, response normalization | `httpx`, env key |
+| `fetch.FirecrawlFetcher` | Firecrawl API call, response normalization | `httpx`, env key |
 | `auth` | Per-domain Playwright storage-state load/save/list/prune | `tldextract`, stdlib |
 | `parse.HtmlParser` | HTML → (markdown, text, tables, forms, images, links) | `trafilatura`, `selectolax`, `markdownify` |
 | `envelope` | Pydantic `FetchResult` schema; JSON serialization | `pydantic` |
@@ -316,7 +316,7 @@ counters are accumulated into the manifest's summary block.
 
 - **v0.1 (MVP):** fetch subcommand, Tiers 1–2, envelope, renderers, Chrome-profile auth, doctor command, fixture server, E2E suite.
 - **v0.2:** crawl subcommand (bounded same-origin, depth-limited, robots.txt respected, include/exclude patterns); `--download-images`.
-- **v0.3:** Firecrawl tier; `--allow-paid` to permit auto-escalation into Tier 3; env-var-scoped API key (`WEBSCRAPER_FIRECRAWL_KEY`).
+- **v0.3 (shipped):** Firecrawl tier; `--allow-paid` to permit auto-escalation into Tier 3; key resolution via `WEBSCRAPER_FIRECRAWL_KEY` env var or `~/.webscraper/firecrawl.key`; `set_firecrawl_key` / `check_firecrawl_key` MCP tools; installer key prompt. See `docs/ADR/ADR-003`.
 - **v0.4 (optional):** MCP server wrapper — if invocation friction proves real, extract a `webscraper_core` library (Option C refactor) and build a thin MCP server over it.
 
 **Rollback.** Each version is a semantically-versioned release. Rollback is `pip/uv` pinning to the prior release. No persistent state, schemas, or external integrations require migration between versions. Envelope schema changes will be additive within a major version.
@@ -354,6 +354,16 @@ non-coder conversations — the UX is delivered through the instruction text, no
 specialized tool names.
 
 Setup lives in `scripts/install-mcp.sh` and is macOS-only in v0.4.
+
+## 14. Key resolution
+
+Firecrawl API keys resolve via `webscraper/firecrawl_key.py`:
+
+1. `WEBSCRAPER_FIRECRAWL_KEY` env var (if set and non-empty)
+2. `~/.webscraper/firecrawl.key` (first non-blank, non-comment line; chmod 600)
+3. None
+
+The MCP server exposes `set_firecrawl_key` (writes the file) and `check_firecrawl_key` (reports source without revealing the key). The installer prompts optionally.
 
 ---
 

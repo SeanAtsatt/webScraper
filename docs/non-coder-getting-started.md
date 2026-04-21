@@ -30,3 +30,9 @@ Once someone has set up the webscraper MCP server on your computer, you can ask 
 - Images: `~/.webscraper/out/<site>/images/`
 
 Ask Claude to open the folder if you want to look inside.
+
+## When a site blocks automated access
+
+If a website is specifically blocking bots (common with ticketing, job-board, and directory sites), Claude will detect this and ask if you want to try the **paid service (Firecrawl)**. This usually costs around one cent per page and gets through where normal scraping can't.
+
+If you haven't set up a Firecrawl key yet, just ask Claude *"how do I set up the Firecrawl key?"* and it'll walk you through it.

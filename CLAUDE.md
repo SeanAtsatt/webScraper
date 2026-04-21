@@ -40,6 +40,8 @@ uv run webscraper crawl <seed-url>
 
 **Fallback.** Until v0.1 ships, `webscraper` does not exist on disk — in that case, use `WebFetch` and note the limitation.
 
+**For sites that block automation:** pass `--allow-paid` to `fetch` or `crawl` — it enables the Firecrawl (paid) tier as a third fallback. Auto-escalation only fires when Tier 2 hits a recognized bot wall. Requires a Firecrawl key (`WEBSCRAPER_FIRECRAWL_KEY` env var or `~/.webscraper/firecrawl.key`).
+
 ## Common Commands
 
 ```bash

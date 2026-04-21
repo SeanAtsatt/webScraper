@@ -233,6 +233,58 @@ Images land in `<out>/images/` with content-addressed filenames like `a3f2b1c9d4
 
 Errors (404, oversize, non-image Content-Type, timeouts) populate `images[].error` and don't stop the rest of the run. Image downloads use HTTP directly and do **not** use saved auth state — images gated behind per-domain auth will 403. This is a documented v0.2.1 limitation; revisit in a later version if needed.
 
+## Handling bot-protected sites (Firecrawl tier, v0.3+)
+
+Some sites actively block automated access (Cloudflare challenges, PerimeterX, Akamai). Tier 2 (Playwright) loses to these. **Firecrawl** is a paid third-party service that specializes in getting through them. webscraper wraps Firecrawl as Tier 3.
+
+### When it fires
+
+- Pass `--allow-paid` to `fetch` or `crawl`
+- Only escalates to Firecrawl when Tier 2 hit a recognized bot wall (`challenge:cloudflare`, `challenge:perimeterx`, `challenge:akamai`)
+- Other Tier 2 failures (timeouts, 404s, empty content) don't spend Firecrawl credits
+
+### Setup
+
+You need a Firecrawl API key from https://www.firecrawl.dev. Pick one of three places to put it:
+
+1. **During install** — run `./scripts/install-mcp.sh` and paste the key when prompted. (Recommended for non-coders.)
+2. **Manual file** —
+   ```bash
+   mkdir -p ~/.webscraper
+   echo YOUR_KEY > ~/.webscraper/firecrawl.key
+   chmod 600 ~/.webscraper/firecrawl.key
+   ```
+3. **Shell env var** — `export WEBSCRAPER_FIRECRAWL_KEY=fc-...` in your `.zshrc` or `.bashrc`. If set, this wins over the file.
+
+### Verify
+
+```bash
+uv run webscraper doctor
+# → "Firecrawl key: configured via file ~/.webscraper/firecrawl.key"
+```
+
+Or ask Claude: *"check if my Firecrawl key is set up"*.
+
+### Usage
+
+```bash
+# Automatic: Tier 1 → Tier 2 → (if bot-blocked) Tier 3
+uv run webscraper fetch https://walled-site.example/ --allow-paid
+
+# Explicit: skip Tiers 1-2, go straight to Firecrawl
+uv run webscraper fetch https://walled-site.example/ --tier=firecrawl
+```
+
+In Claude Desktop, when a site is bot-walled, Claude will ask if you want to try the paid service before charging your Firecrawl account.
+
+### Rotate / remove
+
+```bash
+rm ~/.webscraper/firecrawl.key
+# or
+unset WEBSCRAPER_FIRECRAWL_KEY
+```
+
 ## Talking to Claude about scraping (v0.4 MCP server)
 
 If you want a non-coder to use this tool, install the MCP server and let them chat with Claude Desktop:
@@ -323,7 +375,7 @@ All tests run offline against a local fixture server — no live network.
 | v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Shipped |
 | v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
 | v0.2.1 | `--download-images` flag with dedup, role filter, size cap, error policy | Shipped |
-| v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Not started |
+| v0.3 | Tier 3 (Firecrawl) with `--allow-paid` escalation | Shipped |
 | v0.4 | MCP server wrapper for Claude Desktop + interactive macOS installer | Shipped |
 
 ## License

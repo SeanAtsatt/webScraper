@@ -72,6 +72,16 @@ This project builds that tool.
 - Envelope fields `ImageSpec.local_path` and `ImageSpec.error` (backward-compat additive)
 - Crawl manifest gains `images_downloaded`, `images_failed`, `images_total_bytes`
 
+### In Scope (v0.3)
+
+- Firecrawl as Tier 3 behind the existing dispatcher
+- Opt-in via `--allow-paid` (CLI) or `allow_paid=True` (MCP)
+- Auto-escalation from Tier 2 to Tier 3 only on challenge-page / bot-protection rejection (ADR-003)
+- Key storage: `WEBSCRAPER_FIRECRAWL_KEY` env var wins; file fallback at `~/.webscraper/firecrawl.key` (chmod 600)
+- New MCP tools `set_firecrawl_key` and `check_firecrawl_key` for conversational setup
+- Installer optional prompt to save the key
+- 7 new F-REQs (050–056)
+
 ### In Scope (Roadmap — later versions)
 
 - **v0.3**: Tier 3 backend (Firecrawl API); tier-3 escalation on persistent Tier-2 failure
@@ -238,7 +248,7 @@ Final dependency set captured in `pyproject.toml` at implementation time.
 | v0.1.1 | `login`, `auth list\|forget\|prune`, `--auto-out`, per-domain auth (replaces profile copy) | Not Started |
 | v0.2 | `crawl` subcommand, manifest.json, 10 new F-REQs | Shipped |
 | v0.2.1 | `--download-images` flag with dedup, role filter, size cap, error policy | Shipped |
-| v0.3 | Tier 3 (Firecrawl) with escalation from Tier 2 | Not Started |
+| v0.3 | Tier 3 (Firecrawl) with escalation from Tier 2 | Shipped |
 | v0.4 | MCP server for Claude Desktop | Shipped |
 
 ## Risks & Mitigations
@@ -305,6 +315,13 @@ These will be inserted into `FUNCTIONAL-REQUIREMENTS.md` when implementation beg
 | F-REQ-047 | mcp | MCP server exits non-zero with a structured error when the CLI exits non-zero | response |
 | F-REQ-048 | mcp | Server instruction block is present and non-empty in server metadata | payload |
 | F-REQ-049 | mcp | `install-mcp.sh` is idempotent and reports success on a second run | response |
+| F-REQ-050 | firecrawl | `--allow-paid` flag enables Tier 3 escalation from Tier 2 on bot-wall challenge | response |
+| F-REQ-051 | firecrawl | Auto-escalation to Tier 3 only fires on recognized challenge-page rejection, not other Tier 2 failures | response |
+| F-REQ-052 | firecrawl | `WEBSCRAPER_FIRECRAWL_KEY` env var is used when set and non-empty | response |
+| F-REQ-053 | firecrawl | `~/.webscraper/firecrawl.key` file fallback is used when env var is absent | response |
+| F-REQ-054 | firecrawl | Missing key with `--allow-paid` exits 4 with clear instructions | response |
+| F-REQ-055 | firecrawl | `set_firecrawl_key` MCP tool writes key to `~/.webscraper/firecrawl.key` with chmod 600 | response |
+| F-REQ-056 | firecrawl | `check_firecrawl_key` MCP tool reports key source without revealing the key value | response |
 
 ---
 

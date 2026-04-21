@@ -47,3 +47,11 @@ Claude should use the `check_environment` tool and report any issues.
 ```
 
 Removes the MCP entry from Claude Desktop's config. Leaves the extracted folder and auth data alone (delete those manually if you want a full cleanup).
+
+## Optional: Firecrawl API key setup
+
+Partway through the installer, you'll be prompted:
+
+> Optional: Firecrawl API key. Paste key (or press Enter to skip):
+
+If the user has a Firecrawl key (from https://www.firecrawl.dev), paste it now and the installer writes it to `~/.webscraper/firecrawl.key` with chmod 600. Skipping is fine — the user can configure it later via Claude (*"help me set up my Firecrawl key"*) or manually.
