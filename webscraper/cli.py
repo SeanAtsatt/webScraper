@@ -62,6 +62,11 @@ def _parser() -> argparse.ArgumentParser:
     fetch.add_argument("--image-max-size", type=int, default=50, help="max MB per image")
     fetch.add_argument("--image-concurrency", type=int, default=4)
     fetch.add_argument("--image-on-error", choices=["skip", "abort"], default="skip")
+    fetch.add_argument(
+        "--allow-paid",
+        action="store_true",
+        help="allow the Firecrawl (paid) tier on bot-protected sites",
+    )
 
     login = sub.add_parser("login", help="interactively log in and save storage state for a domain")
     login.add_argument("url")
@@ -104,6 +109,12 @@ def _parser() -> argparse.ArgumentParser:
     crawl.add_argument("--image-max-size", type=int, default=50)
     crawl.add_argument("--image-concurrency", type=int, default=4)
     crawl.add_argument("--image-on-error", choices=["skip", "abort"], default="skip")
+    crawl.add_argument(
+        "--allow-paid",
+        action="store_true",
+        help="allow the Firecrawl (paid) tier on bot-protected sites "
+        "(per page; confirm scale before enabling on large crawls)",
+    )
 
     return p
 
@@ -137,13 +148,23 @@ def _run_fetch(args: argparse.Namespace) -> int:
     if args.out is not None and args.auto_out:
         sys.stderr.write("warning: --out overrides --auto-out\n")
 
-    fetchers: list[Fetcher] = [FastFetcher(), BrowserFetcher()]  # type: ignore[list-item]
+    from webscraper.fetch.firecrawl import FirecrawlFetcher  # noqa: PLC0415
+    from webscraper.firecrawl_key import load_firecrawl_key  # noqa: PLC0415
+
+    api_key = load_firecrawl_key()
+    allow_paid = args.allow_paid or args.tier == "firecrawl"
+
+    fetchers: list[Fetcher] = [FastFetcher(), BrowserFetcher(), FirecrawlFetcher()]  # type: ignore[list-item]
     dispatcher = Dispatcher(fetchers)
     opts = DispatchOptions(
         auto_escalate=args.tier is None,
         forced_tier=args.tier,
         min_content_chars=args.min_content_chars,
-        fetch_opts=FetchOptions(timeout_s=args.timeout),
+        fetch_opts=FetchOptions(
+            timeout_s=args.timeout,
+            allow_paid=allow_paid,
+            firecrawl_api_key=api_key,
+        ),
     )
     envelope = dispatcher.run(args.url, opts)
 
@@ -337,6 +358,7 @@ def _run_crawl(args: argparse.Namespace) -> int:
         image_max_bytes=args.image_max_size * 1024 * 1024,
         image_concurrency=args.image_concurrency,
         image_on_error=args.image_on_error,
+        allow_paid=args.allow_paid,
     )
     result = run_crawl(opts)
     sys.stderr.write(f"manifest: {result.manifest_path}\n")

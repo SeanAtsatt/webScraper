@@ -49,6 +49,7 @@ class CrawlOptions:
     image_max_bytes: int = 50 * 1024 * 1024
     image_concurrency: int = 4
     image_on_error: Literal["skip", "abort"] = "skip"
+    allow_paid: bool = False
 
 
 @dataclass(frozen=True)
@@ -85,11 +86,18 @@ async def _run_crawl_async(opts: CrawlOptions) -> CrawlResult:
         "forced_tier": opts.forced_tier,
     }
     manifest = Manifest(root=opts.output_root, seed=opts.seed, opts=opts_dict)
-    fetchers: list[Fetcher] = cast(list[Fetcher], [FastFetcher(), BrowserFetcher()])
+    from webscraper.fetch.firecrawl import FirecrawlFetcher  # noqa: PLC0415
+    from webscraper.firecrawl_key import load_firecrawl_key  # noqa: PLC0415
+
+    api_key = load_firecrawl_key()
+    fetchers: list[Fetcher] = cast(
+        list[Fetcher],
+        [FastFetcher(), BrowserFetcher(), FirecrawlFetcher()],
+    )
     dispatcher = Dispatcher(fetchers)
 
     workers = [
-        asyncio.create_task(_worker(queue, dispatcher, robots, manifest, opts))
+        asyncio.create_task(_worker(queue, dispatcher, robots, manifest, opts, api_key))
         for _ in range(opts.concurrency)
     ]
 
@@ -132,6 +140,7 @@ async def _worker(
     robots: RobotsChecker,
     manifest: Manifest,
     opts: CrawlOptions,
+    api_key: str | None = None,
 ) -> None:
     while True:
         item = await queue.pop()
@@ -175,7 +184,11 @@ async def _worker(
                     auto_escalate=opts.forced_tier is None,
                     forced_tier=opts.forced_tier,
                     min_content_chars=opts.min_content_chars,
-                    fetch_opts=FetchOptions(user_agent=opts.user_agent),
+                    fetch_opts=FetchOptions(
+                        user_agent=opts.user_agent,
+                        allow_paid=opts.allow_paid,
+                        firecrawl_api_key=api_key,
+                    ),
                 ),
             )
         except AllTiersFailedError as exc:
