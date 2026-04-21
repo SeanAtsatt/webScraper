@@ -48,8 +48,21 @@ def _check_auth() -> tuple[str, bool]:
     return f"auth dir: {len(summaries)} saved sessions at {d}", True
 
 
+def _check_firecrawl_key() -> tuple[str, bool]:
+    from webscraper.firecrawl_key import key_present, key_source
+
+    if key_present():
+        return f"Firecrawl key: configured via {key_source()}", True
+    return (
+        "Firecrawl key: not configured "
+        "(set WEBSCRAPER_FIRECRAWL_KEY or create ~/.webscraper/firecrawl.key "
+        "if you want --allow-paid to work)",
+        True,
+    )
+
+
 def run_doctor() -> int:
-    checks = [_check_python(), _check_playwright(), _check_auth()]
+    checks = [_check_python(), _check_playwright(), _check_auth(), _check_firecrawl_key()]
     all_ok = True
     for message, ok in checks:
         mark = _OK if ok else _FAIL

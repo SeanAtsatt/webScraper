@@ -20,3 +20,19 @@ def test_doctor_runs_and_reports_known_checks(tmp_path: Path) -> None:
     assert "Python" in result.stdout
     assert "Playwright" in result.stdout
     assert "auth dir" in result.stdout.lower() or "saved sessions" in result.stdout.lower()
+
+
+# [F-NONE]
+def test_doctor_reports_firecrawl_key_status(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "webscraper", "doctor"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env={
+            **os.environ,
+            "WEBSCRAPER_HOME": str(tmp_path / "wshome"),
+            "WEBSCRAPER_FIRECRAWL_KEY": "",
+        },
+    )
+    assert "Firecrawl" in result.stdout
