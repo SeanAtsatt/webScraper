@@ -12,6 +12,9 @@ class FetchOptions:
     max_body_bytes: int = 50 * 1024 * 1024
     user_agent: str = "webscraper/0.1 (+https://example.invalid)"
     chrome_profile_path: str | None = None
+    # NEW in v0.3
+    allow_paid: bool = False
+    firecrawl_api_key: str | None = None
 
 
 @dataclass
