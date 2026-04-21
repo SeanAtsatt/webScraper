@@ -9,6 +9,10 @@
         "--config",
         ".docker-mcp.yaml"
       ]
+    },
+    "webscraper": {
+      "command": "uv",
+      "args": ["run", "webscraper-mcp"]
     }
   }
 }
