@@ -76,4 +76,3 @@
 | F-REQ-053 | firecrawl | Saved Firecrawl key file is `chmod 600` for security | response |
 | F-REQ-054 | firecrawl | Empty or whitespace-only keys are rejected | response |
 | F-REQ-055 | firecrawl | Key file supports comment lines (starting with `#`) and loads first non-comment line | response |
-| F-REQ-056 | firecrawl | Firecrawl Tier 3 fetch uses stored key and returns valid envelope on success | response |
