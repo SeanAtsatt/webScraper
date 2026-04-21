@@ -70,3 +70,10 @@
 | F-REQ-047 | mcp | Bot-protection page returns `status: "bot_protection"` (not a raw exception) | response |
 | F-REQ-048 | mcp | Server instructions include the tool map, conversation pattern, auth flow, safety rules | response |
 | F-REQ-049 | mcp | Installer is idempotent: second `--dry-run --yes` makes no additional changes | response |
+| F-REQ-050 | firecrawl | Tier 3 auto-escalates when Tier 2 hits bot-protection and `--allow-paid` is set | response |
+| F-REQ-051 | firecrawl | Without `--allow-paid`, Tier 3 is not attempted even if Tier 2 fails with bot-protection | response |
+| F-REQ-052 | firecrawl | `--tier=firecrawl` without any configured key exits with a clear message | response |
+| F-REQ-053 | firecrawl | Missing key when Tier 3 is requested exits 4 | response |
+| F-REQ-054 | firecrawl | MCP `scrape_page` returns `suggested_next: "retry_with_paid"` on bot-protection | response |
+| F-REQ-055 | firecrawl | `load_firecrawl_key` resolves env var first, then `~/.webscraper/firecrawl.key` | response |
+| F-REQ-056 | firecrawl | MCP `set_firecrawl_key` writes the file with chmod 600; `check_firecrawl_key` reflects it | response |
