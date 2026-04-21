@@ -103,6 +103,7 @@ _CHALLENGE_HTML = (
 )
 
 
+# [F-REQ-050]
 def test_dispatcher_escalates_tier2_challenge_to_firecrawl_when_allowed() -> None:
     d = Dispatcher(
         [
@@ -123,6 +124,7 @@ def test_dispatcher_escalates_tier2_challenge_to_firecrawl_when_allowed() -> Non
     assert tiers == ["fast", "browser", "firecrawl"]
 
 
+# [F-REQ-051]
 def test_dispatcher_does_not_escalate_to_firecrawl_when_not_paid() -> None:
     d = Dispatcher(
         [
@@ -141,6 +143,7 @@ def test_dispatcher_does_not_escalate_to_firecrawl_when_not_paid() -> None:
         )
 
 
+# [F-NONE]
 def test_dispatcher_does_not_escalate_to_firecrawl_on_non_challenge_reason() -> None:
     """Tier 2 fails with 'insufficient_content' (not bot-protection) — skip Tier 3."""
     d = Dispatcher(
@@ -160,6 +163,7 @@ def test_dispatcher_does_not_escalate_to_firecrawl_on_non_challenge_reason() -> 
         )
 
 
+# [F-NONE]
 def test_dispatcher_forced_tier_firecrawl_requires_allow_paid() -> None:
     from webscraper.errors import UsageError
 
@@ -181,6 +185,7 @@ def test_dispatcher_forced_tier_firecrawl_requires_allow_paid() -> None:
         )
 
 
+# [F-NONE]
 def test_dispatcher_forced_tier_firecrawl_with_allow_paid_succeeds() -> None:
     d = Dispatcher(
         [

@@ -3,6 +3,7 @@
 import httpx
 
 
+# [F-NONE]
 def test_firecrawl_mock_requires_bearer(fixture_server: str) -> None:
     resp = httpx.post(
         f"{fixture_server}/firecrawl/v1/scrape",
@@ -12,6 +13,7 @@ def test_firecrawl_mock_requires_bearer(fixture_server: str) -> None:
     assert resp.status_code == 401
 
 
+# [F-NONE]
 def test_firecrawl_mock_returns_canned_scrape(fixture_server: str) -> None:
     resp = httpx.post(
         f"{fixture_server}/firecrawl/v1/scrape",
@@ -25,6 +27,7 @@ def test_firecrawl_mock_returns_canned_scrape(fixture_server: str) -> None:
     assert "Firecrawl:" in body["data"]["html"]
 
 
+# [F-NONE]
 def test_firecrawl_mock_honors_force_402(fixture_server: str) -> None:
     resp = httpx.post(
         f"{fixture_server}/firecrawl/v1/scrape",

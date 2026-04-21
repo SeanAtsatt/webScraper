@@ -24,6 +24,7 @@ def _dispatcher_against_mock(fixture_server: str) -> Dispatcher:
     return Dispatcher(fetchers)
 
 
+# [F-REQ-050]
 def test_dispatcher_escalates_challenge_page_to_firecrawl(
     fixture_server: str, tmp_path: Path
 ) -> None:
@@ -44,6 +45,7 @@ def test_dispatcher_escalates_challenge_page_to_firecrawl(
     assert any(r.startswith("challenge:") for r in reasons)
 
 
+# [F-REQ-051]
 def test_dispatcher_no_paid_means_no_firecrawl_attempt(
     fixture_server: str,
 ) -> None:
@@ -63,6 +65,7 @@ def test_dispatcher_no_paid_means_no_firecrawl_attempt(
         )
 
 
+# [F-NONE]
 def test_dispatcher_forced_firecrawl_skips_tier1_tier2(
     fixture_server: str,
 ) -> None:

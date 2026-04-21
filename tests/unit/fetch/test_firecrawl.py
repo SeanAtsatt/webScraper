@@ -12,6 +12,7 @@ def _mock_api_base(fixture_server: str) -> str:
     return f"{fixture_server}/firecrawl"
 
 
+# [F-NONE]
 def test_raises_when_key_missing(fixture_server: str) -> None:
     f = FirecrawlFetcher(api_base=_mock_api_base(fixture_server))
     opts = FetchOptions(allow_paid=True, firecrawl_api_key=None)
@@ -19,6 +20,7 @@ def test_raises_when_key_missing(fixture_server: str) -> None:
         f.fetch("https://ex.com/", opts)
 
 
+# [F-NONE]
 def test_happy_path_returns_html_and_metadata(fixture_server: str) -> None:
     f = FirecrawlFetcher(api_base=_mock_api_base(fixture_server))
     opts = FetchOptions(allow_paid=True, firecrawl_api_key="fc-test")
@@ -28,6 +30,7 @@ def test_happy_path_returns_html_and_metadata(fixture_server: str) -> None:
     assert result.final_url == "https://ex.com/home"
 
 
+# [F-NONE]
 def test_402_maps_to_environment_error(fixture_server: str) -> None:
     f = FirecrawlFetcher(api_base=_mock_api_base(fixture_server))
     opts = FetchOptions(allow_paid=True, firecrawl_api_key="fc-test")
@@ -36,6 +39,7 @@ def test_402_maps_to_environment_error(fixture_server: str) -> None:
     assert "credits" in str(exc.value).lower() or "payment" in str(exc.value).lower()
 
 
+# [F-NONE]
 def test_429_maps_to_fetcher_error(fixture_server: str) -> None:
     f = FirecrawlFetcher(api_base=_mock_api_base(fixture_server))
     opts = FetchOptions(allow_paid=True, firecrawl_api_key="fc-test")
@@ -44,6 +48,7 @@ def test_429_maps_to_fetcher_error(fixture_server: str) -> None:
     assert exc.value.reason == "firecrawl_rate_limited"
 
 
+# [F-NONE]
 def test_500_maps_to_fetcher_error(fixture_server: str) -> None:
     f = FirecrawlFetcher(api_base=_mock_api_base(fixture_server))
     opts = FetchOptions(allow_paid=True, firecrawl_api_key="fc-test")
@@ -52,6 +57,7 @@ def test_500_maps_to_fetcher_error(fixture_server: str) -> None:
     assert exc.value.reason == "firecrawl_server_error"
 
 
+# [F-NONE]
 def test_401_bad_key_maps_to_environment_error(fixture_server: str) -> None:
     f = FirecrawlFetcher(api_base=_mock_api_base(fixture_server))
     # The mock returns 401 if Authorization header is missing/malformed;
