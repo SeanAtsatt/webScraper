@@ -13,7 +13,6 @@ from webscraper.firecrawl_key import (
 )
 
 
-# [F-REQ-050] [F-REQ-051]
 def test_load_returns_none_when_nothing_configured(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -24,7 +23,6 @@ def test_load_returns_none_when_nothing_configured(
     assert key_source() == "none"
 
 
-# [F-REQ-052]
 def test_env_var_wins_over_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
     monkeypatch.setenv("WEBSCRAPER_FIRECRAWL_KEY", "fc-from-env")
@@ -34,7 +32,6 @@ def test_env_var_wins_over_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert key_source() == "env var"
 
 
-# [F-REQ-051]
 def test_file_used_when_env_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
     monkeypatch.delenv("WEBSCRAPER_FIRECRAWL_KEY", raising=False)
@@ -44,7 +41,6 @@ def test_file_used_when_env_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert "file" in key_source()
 
 
-# [F-REQ-053]
 def test_save_writes_chmod_600(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
     path = save_firecrawl_key("fc-secret")
@@ -52,14 +48,12 @@ def test_save_writes_chmod_600(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert mode == 0o600, f"expected 0o600, got {oct(mode)}"
 
 
-# [F-REQ-054]
 def test_save_rejects_empty_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
     with pytest.raises(ValueError):
         save_firecrawl_key("   ")
 
 
-# [F-REQ-051]
 def test_save_overwrites_existing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
     monkeypatch.delenv("WEBSCRAPER_FIRECRAWL_KEY", raising=False)
@@ -68,7 +62,6 @@ def test_save_overwrites_existing(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert load_firecrawl_key() == "fc-two"
 
 
-# [F-REQ-055]
 def test_load_skips_comment_lines(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
     monkeypatch.delenv("WEBSCRAPER_FIRECRAWL_KEY", raising=False)
