@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from webscraper.challenge import is_challenge_page
 from webscraper.envelope import FetchResult, TierAttempt, TierName
-from webscraper.errors import AllTiersFailedError, FetcherError
+from webscraper.errors import AllTiersFailedError, FetcherError, UsageError
 from webscraper.fetch.base import Fetcher, FetcherResult, FetchOptions
 from webscraper.log import get_logger
 from webscraper.parse import parse_to_envelope
@@ -77,15 +77,31 @@ class Dispatcher:
                     reason=reason,
                 )
             )
+            # Gate escalation to Firecrawl: only proceed if this is a challenge.
+            next_idx = chain.index(fetcher) + 1
+            if (
+                next_idx < len(chain)
+                and chain[next_idx].name == "firecrawl"
+                and not reason.startswith("challenge:")
+            ):
+                break
 
         raise AllTiersFailedError(f"all tiers failed: {[t.reason or t.outcome for t in history]}")
 
     def _build_chain(self, opts: DispatchOptions) -> list[Fetcher]:
         if opts.forced_tier is not None:
+            if opts.forced_tier == "firecrawl" and not opts.fetch_opts.allow_paid:
+                raise UsageError(
+                    "Firecrawl tier requires --allow-paid (or set via MCP's allow_paid=True)"
+                )
             return [f for f in self._fetchers if f.name == opts.forced_tier]
-        if not opts.auto_escalate:
-            return self._fetchers[:1]
-        return list(self._fetchers)
+
+        chain: list[Fetcher] = []
+        for f in self._fetchers:
+            if f.name == "firecrawl" and not opts.fetch_opts.allow_paid:
+                continue  # paid tier gated
+            chain.append(f)
+        return chain if opts.auto_escalate else chain[:1]
 
     @staticmethod
     def _unacceptable_reason(

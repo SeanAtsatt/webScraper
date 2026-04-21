@@ -95,3 +95,106 @@ def test_all_tiers_failing_raises() -> None:
     )
     with pytest.raises(AllTiersFailedError):
         d.run("https://ex/y", DispatchOptions(auto_escalate=True))
+
+
+_CHALLENGE_HTML = (
+    '<html><body><div class="cf-browser-verification">'
+    "Checking your browser...Cloudflare</div></body></html>"
+)
+
+
+def test_dispatcher_escalates_tier2_challenge_to_firecrawl_when_allowed() -> None:
+    d = Dispatcher(
+        [
+            _MockFetcher("fast", result=_fr(_EMPTY)),
+            _MockFetcher("browser", result=_fr(_CHALLENGE_HTML)),
+            _MockFetcher("firecrawl", result=_fr(_OK_LONG)),
+        ]
+    )
+    env = d.run(
+        "https://ex.com/",
+        DispatchOptions(
+            auto_escalate=True,
+            fetch_opts=FetchOptions(allow_paid=True, firecrawl_api_key="fc-k"),
+        ),
+    )
+    assert env.meta.tier_used == "firecrawl"
+    tiers = [a.tier for a in env.meta.tier_history]
+    assert tiers == ["fast", "browser", "firecrawl"]
+
+
+def test_dispatcher_does_not_escalate_to_firecrawl_when_not_paid() -> None:
+    d = Dispatcher(
+        [
+            _MockFetcher("fast", result=_fr(_EMPTY)),
+            _MockFetcher("browser", result=_fr(_CHALLENGE_HTML)),
+            _MockFetcher("firecrawl", result=_fr(_OK_LONG)),
+        ]
+    )
+    with pytest.raises(AllTiersFailedError):
+        d.run(
+            "https://ex.com/",
+            DispatchOptions(
+                auto_escalate=True,
+                fetch_opts=FetchOptions(allow_paid=False, firecrawl_api_key="fc-k"),
+            ),
+        )
+
+
+def test_dispatcher_does_not_escalate_to_firecrawl_on_non_challenge_reason() -> None:
+    """Tier 2 fails with 'insufficient_content' (not bot-protection) — skip Tier 3."""
+    d = Dispatcher(
+        [
+            _MockFetcher("fast", result=_fr(_EMPTY)),
+            _MockFetcher("browser", result=_fr(_EMPTY)),  # insufficient, not challenge
+            _MockFetcher("firecrawl", result=_fr(_OK_LONG)),
+        ]
+    )
+    with pytest.raises(AllTiersFailedError):
+        d.run(
+            "https://ex.com/",
+            DispatchOptions(
+                auto_escalate=True,
+                fetch_opts=FetchOptions(allow_paid=True, firecrawl_api_key="fc-k"),
+            ),
+        )
+
+
+def test_dispatcher_forced_tier_firecrawl_requires_allow_paid() -> None:
+    from webscraper.errors import UsageError
+
+    d = Dispatcher(
+        [
+            _MockFetcher("fast", result=_fr(_OK_LONG)),
+            _MockFetcher("browser", result=_fr(_OK_LONG)),
+            _MockFetcher("firecrawl", result=_fr(_OK_LONG)),
+        ]
+    )
+    with pytest.raises(UsageError):
+        d.run(
+            "https://ex.com/",
+            DispatchOptions(
+                auto_escalate=False,
+                forced_tier="firecrawl",
+                fetch_opts=FetchOptions(allow_paid=False, firecrawl_api_key="fc-k"),
+            ),
+        )
+
+
+def test_dispatcher_forced_tier_firecrawl_with_allow_paid_succeeds() -> None:
+    d = Dispatcher(
+        [
+            _MockFetcher("fast", result=_fr(_OK_LONG)),
+            _MockFetcher("browser", result=_fr(_OK_LONG)),
+            _MockFetcher("firecrawl", result=_fr(_OK_LONG)),
+        ]
+    )
+    env = d.run(
+        "https://ex.com/",
+        DispatchOptions(
+            auto_escalate=False,
+            forced_tier="firecrawl",
+            fetch_opts=FetchOptions(allow_paid=True, firecrawl_api_key="fc-k"),
+        ),
+    )
+    assert env.meta.tier_used == "firecrawl"
