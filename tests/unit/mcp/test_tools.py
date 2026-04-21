@@ -7,6 +7,8 @@ outputs to keep these unit-level fast and deterministic.
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from webscraper.mcp_server.tools import (
     check_environment,
     forget_saved_login,
@@ -241,3 +243,63 @@ def test_log_in_to_site_browser_closed_empty() -> None:
         res = log_in_to_site(url="https://ex.com/")
     assert res["status"] == "browser_closed_empty"
     assert res["key_data"]["cookies_count"] == 0
+
+
+# [F-REQ-054]
+def test_scrape_page_without_allow_paid_suggests_retry(tmp_path: Path) -> None:
+    """A bot-protection outcome from the CLI should surface suggested_next=retry_with_paid."""
+    from webscraper.mcp_server.tools import scrape_page
+
+    # Simulate CLI exit 2 with challenge-page message
+    fake_stdout = (
+        '{"error": {"type": "fetch_failed", '
+        '"message": "all tiers failed: [\'challenge:cloudflare\']"}}'
+    )
+    with (
+        patch(
+            "webscraper.mcp_server.tools.subprocess.run",
+            return_value=_FakeProc(2, stdout=fake_stdout),
+        ),
+        patch(
+            "webscraper.mcp_server.tools._make_scrape_out_path",
+            return_value=tmp_path / "result.json",
+        ),
+    ):
+        res = scrape_page(url="https://walled.example/")
+    assert res["status"] == "bot_protection"
+    assert res["suggested_next"] == "retry_with_paid"
+
+
+# [F-REQ-056]
+def test_set_firecrawl_key_writes_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from webscraper.mcp_server.tools import check_firecrawl_key, set_firecrawl_key
+
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
+    monkeypatch.delenv("WEBSCRAPER_FIRECRAWL_KEY", raising=False)
+
+    # Initially no key
+    r0 = check_firecrawl_key()
+    assert r0["key_data"]["configured"] is False
+
+    # Save a key
+    r1 = set_firecrawl_key(key="fc-test-key")
+    assert r1["status"] == "ok"
+    assert "firecrawl.key" in r1["key_data"]["path"]
+
+    # Now it's configured
+    r2 = check_firecrawl_key()
+    assert r2["key_data"]["configured"] is True
+    assert "file" in r2["key_data"]["source"]
+
+
+# [F-NONE]
+def test_set_firecrawl_key_rejects_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from webscraper.mcp_server.tools import set_firecrawl_key
+
+    monkeypatch.setenv("WEBSCRAPER_HOME", str(tmp_path / "wshome"))
+    monkeypatch.delenv("WEBSCRAPER_FIRECRAWL_KEY", raising=False)
+    r = set_firecrawl_key(key="   ")
+    assert r["status"] == "bad_input"

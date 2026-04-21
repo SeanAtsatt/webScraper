@@ -43,7 +43,11 @@ def classify_cli_result(
     msg = err.get("message", "")
 
     if "challenge:" in msg:
-        return _base("bot_protection", details={"reason": msg})
+        return _base(
+            "bot_protection",
+            details={"reason": msg},
+            suggested_next="retry_with_paid",
+        )
     if final_url and "/login" in final_url.lower():
         return _base(
             "auth_required",

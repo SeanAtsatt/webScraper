@@ -124,10 +124,13 @@ def _make_scrape_out_path(url: str) -> Path:
     return resolve_auto_out(url=url, render_format="json", cwd=Path.cwd(), now=datetime.now(tz=UTC))
 
 
-def scrape_page(*, url: str, render: str = "json") -> dict[str, Any]:
+def scrape_page(*, url: str, render: str = "json", allow_paid: bool = False) -> dict[str, Any]:
     out_path = _make_scrape_out_path(url)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    proc = _run("fetch", url, "--out", str(out_path), "--render", render)
+    args = ["fetch", url, "--out", str(out_path), "--render", render]
+    if allow_paid:
+        args.append("--allow-paid")
+    proc = _run(*args)
     classification = classify_cli_result(
         returncode=proc.returncode,
         stdout=proc.stdout,
@@ -185,6 +188,7 @@ def crawl_site(
     max_depth: int = 3,
     include: list[str] | None = None,
     exclude: list[str] | None = None,
+    allow_paid: bool = False,
 ) -> dict[str, Any]:
     out_root = _make_crawl_out_root(seed)
     out_root.mkdir(parents=True, exist_ok=True)
@@ -203,6 +207,8 @@ def crawl_site(
         args += ["--include", p]
     for p in exclude or []:
         args += ["--exclude", p]
+    if allow_paid:
+        args.append("--allow-paid")
 
     proc = _run(*args, timeout=600)
     classification = classify_cli_result(
@@ -283,6 +289,7 @@ def download_images_from_page(
     url: str,
     roles: list[str] | None = None,
     max_size_mb: int = 10,
+    allow_paid: bool = False,
 ) -> dict[str, Any]:
     out_path = _make_scrape_out_path(url)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -298,6 +305,8 @@ def download_images_from_page(
     ]
     if roles and roles != ["all"]:
         args += ["--image-roles", ",".join(roles)]
+    if allow_paid:
+        args.append("--allow-paid")
 
     proc = _run(*args, timeout=180)
     classification = classify_cli_result(
@@ -338,5 +347,48 @@ def download_images_from_page(
             "files": files,
         },
         "suggested_next": None,
+        "details": {},
+    }
+
+
+def set_firecrawl_key(*, key: str) -> dict[str, Any]:
+    """Save a Firecrawl API key to ~/.webscraper/firecrawl.key (chmod 600)."""
+    from webscraper.firecrawl_key import save_firecrawl_key
+
+    try:
+        path = save_firecrawl_key(key)
+    except ValueError:
+        return {
+            "status": "bad_input",
+            "summary": "The key looks empty. Paste the full `fc-...` string.",
+            "key_data": {},
+            "suggested_next": None,
+            "details": {},
+        }
+    return {
+        "status": "ok",
+        "summary": (
+            f"Saved Firecrawl API key to {path}. You can now retry scrapes with the paid tier."
+        ),
+        "key_data": {"path": str(path)},
+        "suggested_next": None,
+        "details": {},
+    }
+
+
+def check_firecrawl_key() -> dict[str, Any]:
+    """Report whether a Firecrawl key is configured, without revealing it."""
+    from webscraper.firecrawl_key import key_present, key_source
+
+    present = key_present()
+    return {
+        "status": "ok",
+        "summary": (
+            f"Firecrawl key configured via {key_source()}."
+            if present
+            else "No Firecrawl API key configured."
+        ),
+        "key_data": {"configured": present, "source": key_source()},
+        "suggested_next": None if present else "set_firecrawl_key",
         "details": {},
     }

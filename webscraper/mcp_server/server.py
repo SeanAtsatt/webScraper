@@ -41,6 +41,11 @@ def _build_server() -> Server:
                             "enum": ["json", "markdown", "html"],
                             "default": "json",
                         },
+                        "allow_paid": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Allow the paid Firecrawl tier for bot-protected pages.",
+                        },
                     },
                     "required": ["url"],
                 },
@@ -77,6 +82,11 @@ def _build_server() -> Server:
                             "type": "array",
                             "items": {"type": "string"},
                             "default": [],
+                        },
+                        "allow_paid": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Allow the paid Firecrawl tier for bot-protected pages.",
                         },
                     },
                     "required": ["seed"],
@@ -130,6 +140,11 @@ def _build_server() -> Server:
                             "minimum": 1,
                             "maximum": 200,
                         },
+                        "allow_paid": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Allow the paid Firecrawl tier for bot-protected pages.",
+                        },
                     },
                     "required": ["url"],
                 },
@@ -139,6 +154,28 @@ def _build_server() -> Server:
                 description=(
                     "Verify the webscraper install is healthy (Python, Playwright, "
                     "auth directory). Call if other tools are failing unexpectedly."
+                ),
+                inputSchema={"type": "object", "properties": {}},
+            ),
+            Tool(
+                name="set_firecrawl_key",
+                description=(
+                    "Save a Firecrawl API key so the paid tier can be used for "
+                    "bot-protected sites. Writes to ~/.webscraper/firecrawl.key "
+                    "(chmod 600). Note: the key will appear in this Claude Desktop "
+                    "conversation's history — for maximum privacy, use the Terminal "
+                    "setup instead."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {"key": {"type": "string"}},
+                    "required": ["key"],
+                },
+            ),
+            Tool(
+                name="check_firecrawl_key",
+                description=(
+                    "Report whether a Firecrawl API key is configured (never reveals the key)."
                 ),
                 inputSchema={"type": "object", "properties": {}},
             ),
@@ -177,6 +214,8 @@ _HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "forget_saved_login": _wrap(T.forget_saved_login),
     "download_images_from_page": _wrap(T.download_images_from_page),
     "check_environment": _wrap(T.check_environment),
+    "set_firecrawl_key": _wrap(T.set_firecrawl_key),
+    "check_firecrawl_key": _wrap(T.check_firecrawl_key),
 }
 
 

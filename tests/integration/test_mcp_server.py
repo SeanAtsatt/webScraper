@@ -33,7 +33,7 @@ def _text(content: object) -> str:
     return item.text
 
 
-async def test_list_tools_returns_seven(tmp_path: Path) -> None:
+async def test_list_tools_returns_nine(tmp_path: Path) -> None:
     params = _server_params(tmp_path)
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
@@ -47,6 +47,8 @@ async def test_list_tools_returns_seven(tmp_path: Path) -> None:
         "forget_saved_login",
         "download_images_from_page",
         "check_environment",
+        "set_firecrawl_key",
+        "check_firecrawl_key",
     }
 
 
