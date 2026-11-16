@@ -2,13 +2,13 @@
 name = "webscraper"
 version = "0.1.0"
 description = "AI-driven web scraper with tiered fetch backends"
-requires-python = ">=3.11"
+requires-python = ">=3.11.5"
 dependencies = [
     "fastapi>=0.115",
     "httpx>=0.27",
     "markdown>=3.7",
     "markdownify>=0.13",
-    "mcp>=1.0",
+    "mcp>=1.30,<2",
     "playwright>=1.47",
     "pydantic>=2.7",
     "readability-lxml>=0.8.1",
