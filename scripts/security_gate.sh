@@ -123,7 +123,19 @@ VULN_FOUND=0
 if [[ -f "$PROJECT_ROOT/pyproject.toml" ]] || [[ -f "$PROJECT_ROOT/requirements.txt" ]]; then
     echo "  Checking Python dependencies..."
 
-    if command -v pip-audit &> /dev/null; then
+    if [[ -f "$PROJECT_ROOT/uv.lock" ]] && command -v uv &> /dev/null; then
+        # Audit the project's lock, not whatever environment is active.
+        # uv audit exits 1 for findings and 2 when it cannot complete the audit.
+        UV_AUDIT_RC=0
+        UV_AUDIT_OUTPUT=$(cd "$PROJECT_ROOT" && uv audit --frozen --preview-features audit-command 2>&1) || UV_AUDIT_RC=$?
+        echo "$UV_AUDIT_OUTPUT" | sed -n '1,20p'
+        if [[ $UV_AUDIT_RC -eq 1 ]]; then
+            VULN_FOUND=1
+        elif [[ $UV_AUDIT_RC -ne 0 ]]; then
+            echo -e "${YELLOW}  ⚠ Could not audit uv.lock (uv audit exit $UV_AUDIT_RC)${NC}"
+        fi
+    # Run it rather than use command -v: a pyenv shim exists even when inactive.
+    elif pip-audit --version &> /dev/null; then
         if ! pip-audit --strict 2>&1 | head -20; then
             VULN_FOUND=1
         fi
