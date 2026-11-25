@@ -66,7 +66,7 @@ run_gate() {
     stub_pip_audit 0
     run_gate
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Vulnerabilities detected"* ]]
+    [[ "$output" == *"Vulnerabilities detected"* ]] || false
 }
 
 @test "audit tool error warns without reporting vulnerabilities" {
@@ -75,8 +75,8 @@ run_gate() {
     stub_broken_pip_audit
     run_gate
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Could not audit"* ]]
-    [[ "$output" != *"Vulnerabilities detected"* ]]
+    [[ "$output" == *"Could not audit"* ]] || false
+    [[ "$output" != *"Vulnerabilities detected"* ]] || false
 }
 
 @test "project without a lock is not failed by a broken pip-audit shim" {
@@ -84,7 +84,7 @@ run_gate() {
     stub_broken_pip_audit
     run_gate
     [ "$status" -eq 0 ]
-    [[ "$output" == *"pip-audit/safety not found"* ]]
+    [[ "$output" == *"pip-audit/safety not found"* ]] || false
 }
 
 @test "project without a lock still fails on pip-audit findings" {
@@ -92,5 +92,23 @@ run_gate() {
     stub_pip_audit 1
     run_gate
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Vulnerabilities detected"* ]]
+    [[ "$output" == *"Vulnerabilities detected"* ]] || false
+}
+
+# uv audit stalls without erroring when PyPI is unreachable (seen with uv 0.13.9).
+# exec, so the alarm kills the sleep itself rather than orphaning it.
+stub_hanging_uv() {
+    printf '#!/bin/bash\nexec sleep 30\n' > "$STUBS/uv"
+    chmod +x "$STUBS/uv"
+}
+
+@test "stalled uv audit times out and warns instead of hanging" {
+    add_lock
+    stub_hanging_uv
+    stub_broken_pip_audit
+    cd "$BATS_TEST_TMPDIR"
+    UV_AUDIT_TIMEOUT=1 PATH="$STUBS:/usr/bin:/bin" run "$PROJECT/scripts/security_gate.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"timed out"* ]] || false
+    [[ "$output" != *"Vulnerabilities detected"* ]] || false
 }
