@@ -126,10 +126,16 @@ if [[ -f "$PROJECT_ROOT/pyproject.toml" ]] || [[ -f "$PROJECT_ROOT/requirements.
     if [[ -f "$PROJECT_ROOT/uv.lock" ]] && command -v uv &> /dev/null; then
         # Audit the project's lock, not whatever environment is active.
         # uv audit exits 1 for findings and 2 when it cannot complete the audit.
+        # It stalls rather than erroring when PyPI is unreachable, so a perl alarm
+        # kills it after UV_AUDIT_TIMEOUT seconds (exit 142).
         UV_AUDIT_RC=0
-        UV_AUDIT_OUTPUT=$(cd "$PROJECT_ROOT" && uv audit --frozen --preview-features audit-command 2>&1) || UV_AUDIT_RC=$?
+        UV_AUDIT_TIMEOUT=${UV_AUDIT_TIMEOUT:-60}
+        UV_AUDIT_OUTPUT=$(cd "$PROJECT_ROOT" && perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "$UV_AUDIT_TIMEOUT" \
+            uv audit --frozen --preview-features audit-command 2>&1) || UV_AUDIT_RC=$?
         echo "$UV_AUDIT_OUTPUT" | sed -n '1,20p'
-        if [[ $UV_AUDIT_RC -eq 1 ]]; then
+        if [[ $UV_AUDIT_RC -eq 142 ]]; then
+            echo -e "${YELLOW}  ⚠ Could not audit uv.lock: uv audit timed out after ${UV_AUDIT_TIMEOUT}s (PyPI unreachable?)${NC}"
+        elif [[ $UV_AUDIT_RC -eq 1 ]]; then
             VULN_FOUND=1
         elif [[ $UV_AUDIT_RC -ne 0 ]]; then
             echo -e "${YELLOW}  ⚠ Could not audit uv.lock (uv audit exit $UV_AUDIT_RC)${NC}"
